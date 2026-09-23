@@ -1,0 +1,9 @@
+# python bytecode
+__pycache__/
+*.pyc
+
+# regenerable model artifacts (python thumb_model/prep.py rebuilds the cache in ~1 min)
+thumb_model/cache/
+thumb_model/predictions/
+# comparison-only model (HGB model_hgb.pkl is the one predict.py uses)
+thumb_model/model_mlp.pkl

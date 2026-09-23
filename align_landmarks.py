@@ -17,7 +17,11 @@ OBJ_DIR = os.path.join(ROOT, "obj")
 OUT_DIR = os.path.join(ROOT, "aligned")
 
 SAMPLES_PER_MM2 = 4.0
-TRIM_RATIO = 0.85  # fraction of closest correspondences used per ICP step
+# use every fitted landmark each ICP step: trimming the worst few let the fit
+# slide proximally along the fingers (tubes) and settle in a wrong minimum
+TRIM_RATIO = 1.0
+# extra ICP starts shifted along the mesh hand axis (mm), to escape that minimum
+HAND_SHIFTS_MM = range(-6, 18, 2)
 RMS_WARN_MM = 5.0
 SPHERE_RADIUS = 1.5
 
@@ -67,6 +71,34 @@ def sample_surface(V, F, seed=0):
     u[flip], v[flip] = 1 - u[flip], 1 - v[flip]
     pts = a[idx] + u[:, None] * (b[idx] - a[idx]) + v[:, None] * (c[idx] - a[idx])
     return np.vstack([V, pts])
+
+
+def hand_axis(V):
+    """Mesh-only hand frame: wrist-cut centre (xy) and unit axis towards the
+    longest fingertip (max y), z component zero."""
+    wrist = V[V[:, 1] < V[:, 1].min() + 3]
+    origin = np.array([*wrist[:, :2].mean(0), 0.0])
+    tip = V[np.argmax(V[:, 1])]
+    axis = np.array([tip[0] - origin[0], tip[1] - origin[1], 0.0])
+    return origin, axis / np.linalg.norm(axis)
+
+
+def tip_apex_gap(X, V, tube_radius=12.0):
+    """How far (mm) the thumb-tip landmark P1 sits short of the mesh's thumb
+    apex, measured along the P15->P1 axis in xy. Near 0 when P1 is at the tip."""
+    p1, p15 = X[0], X[14]
+    d = p1 - p15
+    d[2] = 0
+    L = np.linalg.norm(d)
+    u = d / L
+    lat = np.array([-u[1], u[0], 0.0])
+    rel = V - p15
+    t = rel @ u
+    perp = np.sqrt((rel @ lat) ** 2 + (rel[:, 2] - p1[2]) ** 2)
+    tube = (perp < tube_radius) & (t > L - 15)
+    if not tube.any():
+        return np.nan
+    return t[tube].max() - L
 
 
 def kabsch(P, Q, w):
@@ -129,7 +161,16 @@ def align(P, V, F):
             # score on all landmarks so wrong minima with a few far-off points lose
             cands.append((np.sqrt(np.mean(d ** 2)), ang, T))
         _, ang, T = min(cands, key=lambda c: c[0])
-        T, rms, d = icp(P, tree, surf, T)
+        # restart shifted along the hand axis: fingers are tubes, so a fit
+        # that sits a few mm too proximal looks almost as good locally
+        _, axis = hand_axis(V)
+        shifted = []
+        for s in HAND_SHIFTS_MM:
+            T0 = T.copy()
+            T0[:3, 3] += s * axis
+            T1, rms1, d1 = icp(P, tree, surf, T0)
+            shifted.append((d1.mean(), rms1, T1, d1))
+        _, rms, T, d = min(shifted, key=lambda c: c[0])
         best[mirror] = (rms, T, d)
     return best[False], best[True][0], tree
 
@@ -200,7 +241,7 @@ def write_outputs(name, ids, X, T, rms, fit_max, dist, obj_lines, n_verts):
         np.savetxt(fh, T, fmt="%.9f")
         fh.write(f"# fitted on 3D-measured landmarks only; excluded: "
                  f"{', '.join(str(i) for i in sorted(NON_3D_LANDMARKS))}\n")
-        fh.write(f"# trimmed RMS (mm): {rms:.4f}\n")
+        fh.write(f"# RMS of fitted landmarks (mm): {rms:.4f}\n")
         fh.write(f"# max distance of fitted landmarks (mm): {fit_max:.4f}\n")
         for i, d in zip(ids, dist):
             note = " (not fitted, z filled-in)" if i in NON_3D_LANDMARKS else ""
@@ -223,6 +264,8 @@ def main():
         X = P @ T[:3, :3].T + T[:3, 3]
         dist, _ = tree.query(X)
         fit_max = fit_dist.max()
+        fit_mean = fit_dist.mean()
+        apex_gap = tip_apex_gap(X, V)
         write_outputs(name, ids, X, T, rms, fit_max, dist, lines, len(V))
 
         angle = np.degrees(np.arctan2(T[1, 0], T[0, 0]))
@@ -241,16 +284,16 @@ def main():
         thumb_rows.append([name, human_id, f"{thumb:.2f}", "" if ref is None else f"{ref:.1f}",
                            "" if diff is None else f"{diff:+.2f}", match])
 
-        print(f"{name}: rms={rms:.3f}mm max={fit_max:.3f}mm "
-              f"rotZ={angle:.1f}deg tz={T[2, 3]:.2f}mm mirror_rms={mirror_rms:.3f} "
-              f"thumb={thumb:.2f}mm ref={ref} {' '.join(flags)}")
-        rows.append([name, f"{rms:.4f}", f"{fit_max:.4f}", f"{angle:.2f}",
-                     f"{mirror_rms:.4f}", f"{thumb:.2f}", " ".join(flags)])
+        print(f"{name}: rms={rms:.3f}mm mean={fit_mean:.3f}mm max={fit_max:.3f}mm "
+              f"apex_gap={apex_gap:.2f}mm rotZ={angle:.1f}deg tz={T[2, 3]:.2f}mm "
+              f"mirror_rms={mirror_rms:.3f} thumb={thumb:.2f}mm ref={ref} {' '.join(flags)}")
+        rows.append([name, f"{rms:.4f}", f"{fit_mean:.4f}", f"{fit_max:.4f}", f"{apex_gap:.3f}",
+                     f"{angle:.2f}", f"{mirror_rms:.4f}", f"{thumb:.2f}", " ".join(flags)])
 
     with open(os.path.join(OUT_DIR, "summary.csv"), "w", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["name", "trimmed_rms_mm", "max_dist_fitted_mm", "rot_z_deg", "mirror_rms_mm",
-                    "thumb_length_mm", "flags"])
+        w.writerow(["name", "rms_fitted_mm", "mean_dist_fitted_mm", "max_dist_fitted_mm",
+                    "tip_apex_gap_mm", "rot_z_deg", "mirror_rms_mm", "thumb_length_mm", "flags"])
         w.writerows(rows)
 
     with open(os.path.join(ROOT, "thumb_length.csv"), "w", newline="") as fh:

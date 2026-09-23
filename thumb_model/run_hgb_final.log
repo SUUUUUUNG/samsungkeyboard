@@ -1,0 +1,23 @@
+﻿train 12: ['20_F_0004G', '20_F_0097G', '20_F_2633G', '20_F_2634G', '20_F_2636G', '20_F_2637G', '20_M_1113G', '20_M_1114G', '20_M_1115G', '20_M_1117G', '20_M_1559G', '20_M_1573G']
+test  3: ['20_F_0179G', '20_F_2635G', '20_M_1116G']
+
+chosen: P1=apex  P15=atlas  bias correction=-0.43 mm
+[test] 20_F_0179G: pred=47.62 ref=45.6 err=+2.02 (bias-corrected +2.44)  P1err=1.84 P15err=2.17
+[test] 20_F_2635G: pred=48.04 ref=44.6 err=+3.44 (bias-corrected +3.87)  P1err=0.62 P15err=3.60
+[test] 20_M_1116G: pred=51.53 ref=55.1 err=-3.57 (bias-corrected -3.14)  P1err=2.07 P15err=3.14
+
+Test hands, all method pairs
+P1      P15        MAE   bias    max <=0.5  P1err P15err
+coarse  fine      1.99  -1.40   4.37   0/3    1.52   2.84
+atlas   fine      2.09  -1.42   4.58   0/3    1.88   2.84
+fine    fine      2.11  -1.14   4.27   0/3    1.35   2.84
+coarse  coarse    2.27  -1.22   5.18   1/3    1.52   3.00
+atlas   coarse    2.35  -1.24   5.36   1/3    1.88   3.00
+apex    fine      2.41  -0.71   4.20   1/3    1.51   2.84
+fine    coarse    2.42  -0.96   5.08   1/3    1.35   3.00
+coarse  atlas     2.45  -0.05   3.76   0/3    1.52   2.97
+atlas   atlas     2.55  -0.07   3.94   0/3    1.88   2.97
+fine    atlas     2.64  +0.20   3.66   0/3    1.35   2.97
+apex    coarse    2.79  -0.53   4.99   1/3    1.51   3.00
+apex    atlas     3.01  +0.63   3.57   0/3    1.51   2.97
+saved C:\Users\heony\Documents\samsungkeyboard\thumb_model\model_hgb.pkl

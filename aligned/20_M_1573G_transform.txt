@@ -1,36 +1,36 @@
 # 4x4 rigid transform: X_obj = T @ [X_lnd, 1]
-0.999967331 -0.008083093 0.000000000 -80.171176228
-0.008083093 0.999967331 0.000000000 -98.341299440
-0.000000000 0.000000000 1.000000000 0.057859143
+0.999573696 -0.029196336 0.000000000 -79.389629696
+0.029196336 0.999573696 0.000000000 -99.720446344
+0.000000000 0.000000000 1.000000000 0.044902039
 0.000000000 0.000000000 0.000000000 1.000000000
 # fitted on 3D-measured landmarks only; excluded: 7, 8, 9, 10, 11, 12, 13, 14, 28
-# trimmed RMS (mm): 0.5666
-# max distance of fitted landmarks (mm): 1.6955
-# landmark 1: 0.7250
-# landmark 2: 0.3244
-# landmark 3: 0.8699
-# landmark 4: 0.2875
-# landmark 5: 0.2678
-# landmark 6: 0.2442
-# landmark 7: 0.4200 (not fitted, z filled-in)
-# landmark 8: 0.2798 (not fitted, z filled-in)
-# landmark 9: 0.1987 (not fitted, z filled-in)
-# landmark 10: 0.2559 (not fitted, z filled-in)
-# landmark 11: 0.4741 (not fitted, z filled-in)
-# landmark 12: 0.6500 (not fitted, z filled-in)
-# landmark 13: 0.1604 (not fitted, z filled-in)
-# landmark 14: 0.3901 (not fitted, z filled-in)
-# landmark 15: 0.1222
-# landmark 16: 0.4338
-# landmark 17: 0.0751
-# landmark 18: 0.1840
-# landmark 19: 0.1971
-# landmark 20: 0.5748
-# landmark 21: 0.7963
-# landmark 22: 1.3478
-# landmark 23: 1.6955
-# landmark 24: 1.2818
-# landmark 25: 1.4225
-# landmark 26: 0.5676
-# landmark 27: 0.5692
-# landmark 28: 1.1069 (not fitted, z filled-in)
+# RMS of fitted landmarks (mm): 0.2253
+# max distance of fitted landmarks (mm): 0.4481
+# landmark 1: 0.3333
+# landmark 2: 0.3165
+# landmark 3: 0.0718
+# landmark 4: 0.2432
+# landmark 5: 0.4481
+# landmark 6: 0.1016
+# landmark 7: 0.5239 (not fitted, z filled-in)
+# landmark 8: 0.4002 (not fitted, z filled-in)
+# landmark 9: 0.3080 (not fitted, z filled-in)
+# landmark 10: 0.4554 (not fitted, z filled-in)
+# landmark 11: 0.3339 (not fitted, z filled-in)
+# landmark 12: 0.5415 (not fitted, z filled-in)
+# landmark 13: 0.1431 (not fitted, z filled-in)
+# landmark 14: 0.5845 (not fitted, z filled-in)
+# landmark 15: 0.1901
+# landmark 16: 0.2377
+# landmark 17: 0.1946
+# landmark 18: 0.2347
+# landmark 19: 0.3476
+# landmark 20: 0.0937
+# landmark 21: 0.1327
+# landmark 22: 0.0188
+# landmark 23: 0.1899
+# landmark 24: 0.0530
+# landmark 25: 0.2587
+# landmark 26: 0.1092
+# landmark 27: 0.1636
+# landmark 28: 0.7955 (not fitted, z filled-in)
