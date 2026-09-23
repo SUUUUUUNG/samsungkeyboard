@@ -1,0 +1,36 @@
+# 4x4 rigid transform: X_obj = T @ [X_lnd, 1]
+0.993736764 -0.111746334 0.000000000 -56.824169472
+0.111746334 0.993736764 0.000000000 -109.231857437
+0.000000000 0.000000000 1.000000000 -1.025078846
+0.000000000 0.000000000 0.000000000 1.000000000
+# fitted on 3D-measured landmarks only; excluded: 7, 8, 9, 10, 11, 12, 13, 14, 28
+# trimmed RMS (mm): 1.5653
+# max distance of fitted landmarks (mm): 6.2330
+# landmark 1: 0.6353
+# landmark 2: 0.2269
+# landmark 3: 0.4001
+# landmark 4: 2.5570
+# landmark 5: 0.9809
+# landmark 6: 2.3896
+# landmark 7: 2.5303 (not fitted, z filled-in)
+# landmark 8: 1.9522 (not fitted, z filled-in)
+# landmark 9: 1.3034 (not fitted, z filled-in)
+# landmark 10: 1.5825 (not fitted, z filled-in)
+# landmark 11: 2.4120 (not fitted, z filled-in)
+# landmark 12: 2.2098 (not fitted, z filled-in)
+# landmark 13: 1.7798 (not fitted, z filled-in)
+# landmark 14: 2.0355 (not fitted, z filled-in)
+# landmark 15: 1.0974
+# landmark 16: 1.2114
+# landmark 17: 0.1416
+# landmark 18: 0.6752
+# landmark 19: 0.9697
+# landmark 20: 5.3874
+# landmark 21: 3.7700
+# landmark 22: 6.2330
+# landmark 23: 3.5097
+# landmark 24: 1.6119
+# landmark 25: 1.7056
+# landmark 26: 1.0922
+# landmark 27: 1.5076
+# landmark 28: 5.3017 (not fitted, z filled-in)
