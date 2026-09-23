@@ -31,7 +31,9 @@ python thumb_model/predict.py obj/20_F_0179G.obj   # 추론: P1·P15 좌표 + �
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)
 ```
 
-## 4. 현재 상태 (2026-09-23 기준)
+## 4. 현재 상태 (2026-09-24 기준)
+**최종 판정: 정답 P15를 재현하는 방법(규칙·수정 규칙·학습 모델)은 찾지 못했습니다.** 모든 접근이 P15 표준편차 약 2.4mm에서 멈추며, 엄지 길이 최선은 MAE 2.1mm(목표 0.5mm 미달). 접근별 수치 표는 `align2_and_modeling_readme.md` 맨 위 "최종 판정" 절.
+
 | 항목 | 상태 |
 |---|---|
 | lnd → obj 정합 | **완료.** 15명 모두 실측 19점 평균 표면 거리 0.17~0.28mm |
