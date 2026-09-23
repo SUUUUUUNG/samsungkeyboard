@@ -7,3 +7,7 @@ thumb_model/cache/
 thumb_model/predictions/
 # comparison-only model (HGB model_hgb.pkl is the one predict.py uses)
 thumb_model/model_mlp.pkl
+
+# same meshes as obj/ in other formats (verified identical, no colour/texture)
+PLY/
+STL/
