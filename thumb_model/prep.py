@@ -18,7 +18,9 @@ sys.path.insert(0, os.path.dirname(HERE))
 from align_landmarks import OBJ_DIR, OUT_DIR as ALIGNED_DIR, hand_axis, read_obj, rot_z  # noqa: E402
 
 CACHE_DIR = os.path.join(HERE, "cache")
-LANDMARKS = {"P1": 0, "P15": 14}  # row index in the .lnd file
+# row index in the .lnd file of every 3D-measured landmark (7-14 and 28 are derived
+# by the SW from these: thirds of tip->base lines and the wrist midpoint)
+LANDMARKS = {f"P{i}": i - 1 for i in list(range(1, 7)) + list(range(15, 28))}
 HEAT_SIGMA = 5.0    # mm, coarse heatmap width
 OFFSET_RADIUS = 20.0  # mm, vertices that get an offset-vector label
 KNN = (12, 40, 120)   # neighbourhood sizes (~3, 6, 10 mm radius at this vertex spacing)

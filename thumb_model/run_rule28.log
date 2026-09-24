@@ -1,0 +1,44 @@
+20_F_0004G: P28 1.1  P1 4.0  P20 7.1  P21-23 3.1/0.2/2.8  P16-19 axis -3.1/-2.6/-6.0/+1.9  P15[B] -0.29 len_err +1.87  P15[A] +3.60 len_err +2.42  P15[C] -0.30 len_err +2.11
+20_F_0097G: P28 3.6  P1 3.1  P20 2.9  P21-23 1.5/0.9/4.7  P16-19 axis -3.1/-3.2/-2.0/-2.4  P15[B] -2.13 len_err +2.19  P15[A] -1.02 len_err +4.31  P15[C] -2.88 len_err +3.24
+20_F_0179G: P28 6.4  P1 4.3  P20 6.0  P21-23 0.7/0.9/0.1  P16-19 axis -1.8/-4.5/-8.7/+4.4  P15[B] -0.25 len_err +2.17  P15[A] +0.73 len_err +3.98  P15[C] -0.68 len_err +2.80
+20_F_2633G: P28 3.3  P1 3.8  P20 0.8  P21-23 5.2/3.5/1.4  P16-19 axis -2.7/-5.3/-7.3/+1.8  P15[B] -0.05 len_err +1.67  P15[A] +0.30 len_err +2.52  P15[C] -0.12 len_err +2.15
+20_F_2634G: P28 2.2  P1 2.9  P20 2.7  P21-23 1.7/2.3/0.7  P16-19 axis -2.5/-2.6/-5.0/+2.9  P15[B] -3.73 len_err +4.69  P15[A] -3.07 len_err +6.77  P15[C] -4.19 len_err +5.32
+20_F_2635G: P28 3.5  P1 2.3  P20 3.8  P21-23 1.1/2.1/1.3  P16-19 axis -2.3/-4.0/-2.6/+1.8  P15[B] -3.07 len_err +4.05  P15[A] -2.18 len_err +5.28  P15[C] -3.28 len_err +4.34
+20_F_2636G: P28 9.6  P1 3.7  P20 6.5  P21-23 0.2/0.7/1.3  P16-19 axis -1.9/-5.0/-5.1/+1.4  P15[B] -0.11 len_err +1.24  P15[A] +0.01 len_err +2.66  P15[C] -0.33 len_err +1.60
+20_F_2637G: P28 1.8  P1 5.3  P20 0.9  P21-23 0.4/1.1/0.7  P16-19 axis -2.4/-5.1/-3.6/+2.9  P15[B] -1.20 len_err +3.11  P15[A] -0.34 len_err +4.07  P15[C] -1.19 len_err +3.72
+20_M_1113G: P28 5.3  P1 3.8  P20 13.9  P21-23 1.0/1.6/1.2  P16-19 axis -1.1/-1.3/-7.2/+2.2  P15[B] +4.28 len_err -2.32  P15[A] +8.96 len_err -2.32  P15[C] +4.70 len_err -1.98
+20_M_1114G: P28 4.8  P1 3.2  P20 7.4  P21-23 2.0/1.3/1.1  P16-19 axis -6.2/-7.8/-6.4/+1.5  P15[B] +0.23 len_err +0.98  P15[A] +0.80 len_err +2.20  P15[C] +0.13 len_err +1.87
+20_M_1115G: P28 1.4  P1 4.1  P20 11.8  P21-23 1.1/0.6/1.8  P16-19 axis -3.8/-2.4/-5.1/+1.8  P15[B] +1.64 len_err -0.54  P15[A] +3.14 len_err +0.28  P15[C] +1.89 len_err +0.12
+20_M_1116G: P28 0.5  P1 1.1  P20 4.8  P21-23 0.8/0.9/3.7  P16-19 axis -3.3/-5.0/-4.1/+4.1  P15[B] +1.92 len_err -1.63  P15[A] +1.03 len_err -0.23  P15[C] +1.09 len_err -0.48
+20_M_1117G: P28 1.1  P1 2.0  P20 4.2  P21-23 1.9/0.8/4.4  P16-19 axis -4.6/-3.8/-8.5/+1.5  P15[B] -1.63 len_err +2.11  P15[A] -1.98 len_err +3.40  P15[C] -2.07 len_err +3.06
+20_M_1559G: P28 6.8  P1 2.6  P20 5.4  P21-23 2.7/0.1/9.7  P16-19 axis -5.5/-6.1/-9.6/+1.7  P15[B] -4.75 len_err +5.07  P15[A] -5.25 len_err +6.09  P15[C] -5.07 len_err +6.50
+20_M_1573G: P28 2.5  P1 3.7  P20 4.4  P21-23 0.6/1.1/2.7  P16-19 axis -5.8/-7.7/-9.1/+1.4  P15[B] -4.79 len_err +6.06  P15[A] -2.45 len_err +6.36  P15[C] -3.63 len_err +6.49
+
+Reconstructed vs SW landmarks (3D distance, mm):
+  P28  mean +3.58 sd 2.48 max|.| 9.59
+  P26  mean +7.38 sd 4.02 max|.| 15.19
+  P27  mean +6.88 sd 3.91 max|.| 16.32
+  P1   mean +3.31 sd 1.01 max|.| 5.31
+  P2   mean +2.23 sd 1.48 max|.| 5.55
+  P3   mean +2.51 sd 1.29 max|.| 5.08
+  P4   mean +2.05 sd 1.28 max|.| 4.38
+  P5   mean +3.11 sd 1.50 max|.| 6.19
+  P20  mean +5.51 sd 3.48 max|.| 13.89
+  P21  mean +1.60 sd 1.25 max|.| 5.24
+  P22  mean +1.21 sd 0.85 max|.| 3.52
+  P23  mean +2.51 sd 2.35 max|.| 9.74
+  P16  mean +3.72 sd 1.50 max|.| 6.23
+  P17  mean +4.79 sd 1.66 max|.| 8.19
+  P18  mean +6.40 sd 2.01 max|.| 9.76
+  P19  mean +4.66 sd 2.28 max|.| 10.43
+
+Finger bases, along-axis component (mm):
+  P16  mean -3.34 sd 1.48 max|.| 6.16
+  P17  mean -4.43 sd 1.82 max|.| 7.79
+  P18  mean -6.03 sd 2.29 max|.| 9.62
+  P19  mean +1.93 sd 1.47 max|.| 4.42
+
+Thumb base P15 by axis variant (along-axis error, mm) and thumb length error vs reference:
+  B_along_2cm        P15 axis mean -0.93 sd 2.44 max|.| 4.79 | length MAE 2.65 max 6.06 <=0.5: 0/15
+  A_horizontal_2cm   P15 axis mean +0.15 sd 3.24 max|.| 8.96 | length MAE 3.53 max 6.77 <=0.5: 2/15
+  C_multi_station    P15 axis mean -1.06 sd 2.47 max|.| 5.07 | length MAE 3.05 max 6.50 <=0.5: 2/15

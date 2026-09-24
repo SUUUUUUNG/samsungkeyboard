@@ -29,7 +29,11 @@ python thumb_model/train_eval.py          # 12명 LOO + 3명 테스트 + model_h
 python thumb_model/train_eval.py --stage1 mlp   # MLP 비교 (약 90분, 결과 동일)
 python thumb_model/predict.py obj/20_F_0179G.obj   # 추론: P1·P15 좌표 + 길이, thumb_model/predictions/*.ply
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)
+python thumb_model/eval_all_landmarks.py            # 28점 전체 오차, 학습 모델·기준선 15-fold LOO (약 45분)
+python thumb_model/landmark_report.py               # 접근별 28점 오차 보고서 → thumb_model/report/ (그림 4개, HTML, 요약 CSV)
 ```
+
+접근별 28점 오차 비교 자료(팀 공유용): `thumb_model/report/landmark_report.html` — 28점 평균 3D 오차 규칙 3.40 / 학습 2.75 / 기준선 6.34mm. 상세는 `align2_and_modeling_readme.md`의 "접근별 전체 랜드마크 오차" 절.
 
 ## 4. 현재 상태 (2026-09-24 기준)
 **최종 판정: 정답 P15를 재현하는 방법(규칙·수정 규칙·학습 모델)은 찾지 못했습니다.** 모든 접근이 P15 표준편차 약 2.4mm에서 멈추며, 엄지 길이 최선은 MAE 2.1mm(목표 0.5mm 미달). 접근별 수치 표는 `align2_and_modeling_readme.md` 맨 위 "최종 판정" 절.

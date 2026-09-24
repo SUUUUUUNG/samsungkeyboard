@@ -28,10 +28,10 @@ WRIST_MIN_ABOVE_CUT_MM = 5.0  # below this the concavity search has degenerated 
 WRIST_FALLBACK_MM = 21.0      # mean height of the SW's wrist points above the cut (15 hands)
 AXIS_STATION_MM = 20.0        # patent: finger width bisected 2 cm above the web point
 SLAB_MM = 0.75                # half-thickness of the slabs used to read widths off the samples
-LND_IDX = {"P1": 0, "P2": 1, "P3": 2, "P4": 3, "P5": 4, "P6": 5, "P15": 14, "P16": 15, "P17": 16,
-           "P18": 17, "P19": 18, "P20": 19, "P21": 20, "P22": 21, "P23": 22, "P24": 23, "P25": 24,
-           "P26": 25, "P27": 26, "P28": 27}
-THUMB_AXIS_VARIANTS = ("A_horizontal_2cm", "B_along_2cm", "C_multi_station")
+LND_IDX = {f"P{i}": i - 1 for i in range(1, 29)}
+ALL_POINTS = [f"P{i}" for i in range(1, 29)]
+# first entry is the default: its landmarks go to rule_landmarks.csv and the 28-point error columns
+THUMB_AXIS_VARIANTS = ("B_along_2cm", "A_horizontal_2cm", "C_multi_station")
 
 
 # ----------------------------------------------------------------- frames
@@ -189,16 +189,17 @@ def finger_base(S, tip, web, bisector):
     return np.array([base_xy[0], base_xy[1], palm_z(S, base_xy)])
 
 
-def thumb_medial_axis(S, outline, i_tip, i_web, stations=(6.0, 10.0, 14.0, 18.0, 22.0, 26.0)):
-    """Medial axis of the thumb between the tip and the web level. The radial
-    sweep only shows the thumb's ulnar edge near the tip (further down the rays
-    reach the index finger), so the edges are read from the surface samples
+def thumb_medial_axis(S, outline, i_tip, i_web, stations=(6.0, 10.0, 14.0, 18.0, 22.0, 26.0), outer_after_tip=False):
+    """Medial axis of an outer digit (thumb, or little finger with
+    outer_after_tip=True) between the tip and the web level. The radial sweep
+    only shows the digit's inner edge near the tip (further down the rays reach
+    the neighbouring finger), so the edges are read from the surface samples
     station by station: midpoint of the lateral extent within +/-15 mm of a
     preliminary axis. Returns (unit direction base->tip, point on the axis)."""
     P = outline["pts"][:, :2]
     tip = P[i_tip]
     web = P[i_web]
-    radial = P[:i_tip]
+    radial = P[i_tip + 1:] if outer_after_tip else P[:i_tip]   # the digit's outer (free) edge
     if len(radial) < 5:
         return None
     # preliminary direction: tip -> midpoint of the web and the radial-edge point equally far from the tip
@@ -237,7 +238,7 @@ def thumb_bisector(S, tip, web, variant, x_lo, outline=None, i_tip=None, i_web=N
 
 
 # --------------------------------------------------------------- pipeline
-def run(V, F, thumb_variant="C_multi_station", seed=0, frame_override=None):
+def run(V, F, thumb_variant="B_along_2cm", seed=0, frame_override=None):
     """frame_override = (centre_xyz, middle_tip_xyz) in the obj frame skips the
     patent wrist rule and uses that centre/axis (diagnostic: SW's own P28/P3)."""
     S = np.vstack([V, sample_surface(V, F, seed=seed)])
@@ -280,10 +281,10 @@ def run(V, F, thumb_variant="C_multi_station", seed=0, frame_override=None):
     out = {"P1": T[0], "P2": T[1], "P3": T[2], "P4": T[3], "P5": T[4],
            "P20": W[0], "P21": W[1], "P22": W[2], "P23": W[3],
            "P26": outer, "P27": inner, "P28": centre}
-    # fingers 2-5: axis = tip -> horizontal width bisector 2 cm above the finger's web
-    # (patent uses the web on the finger's own side; little finger uses the ring-little web)
+    # fingers 2-4: axis = tip -> horizontal width bisector 2 cm above the finger's web
+    # (patent uses the web on the finger's own side)
     finger_webs = {"P16": (1, W[1], W[0][0], W[1][0]), "P17": (2, W[2], W[1][0], W[2][0]),
-                   "P18": (3, W[3], W[2][0], W[3][0]), "P19": (4, W[3], -np.inf, W[3][0])}
+                   "P18": (3, W[3], W[2][0], W[3][0])}
     for name, (ti, web, x_hi, x_lo) in finger_webs.items():
         lo, hi = sorted([x_lo, x_hi])
         b = width_bisector_at_y(Sw, web[1] + AXIS_STATION_MM, lo, hi)
@@ -291,6 +292,12 @@ def run(V, F, thumb_variant="C_multi_station", seed=0, frame_override=None):
             b = T[ti][:2]
         out[name] = finger_base(Sw, T[ti], web, b)
         out[name + "_B"] = np.array([b[0], b[1], 0.0])
+    # little finger: short and splayed, so a horizontal slab 2 cm above its web often
+    # misses it; use the medial axis between its free edge and the ring-little web
+    axis = thumb_medial_axis(Sw, outl, tips[4], webs[3], outer_after_tip=True)
+    b = T[4][:2] - 20.0 * axis[0] if axis is not None else T[4][:2]
+    out["P19"] = finger_base(Sw, T[4], W[3], b)
+    out["P19_B"] = np.array([b[0], b[1], 0.0])
     # thumb
     b = thumb_bisector(Sw, T[0], W[0], thumb_variant, x_lo=W[0][0], outline=outl, i_tip=tips[0], i_web=webs[0])
     if b is None:
@@ -298,6 +305,25 @@ def run(V, F, thumb_variant="C_multi_station", seed=0, frame_override=None):
     out["P15"] = finger_base(Sw, T[0], W[0], b)
     out["P15_B"] = np.array([b[0], b[1], 0.0])
     out["thumb_variant"] = thumb_variant
+    # P6 (thumb IP): not in the patent; the SW's P6 lies on the P1-P15 line at
+    # 0.506 +/- 0.029 of the way from P15, so use the midpoint (approximation)
+    mid = 0.5 * (out["P1"][:2] + out["P15"][:2])
+    out["P6"] = np.array([mid[0], mid[1], palm_z(Sw, mid)])
+    # P25 (patent 손가쪽점): outline below the index finger at y between the
+    # thumb-index web and the index base, 4.5:5.5 (SW's P25 sits at ~0.55)
+    y25 = W[0][1] + 0.55 * (out["P16"][1] - W[0][1])
+    seg = outl["pts"][webs[0]:tips[1] + 1]
+    out["P25"] = seg[np.argmin(np.abs(seg[:, 1] - y25))]
+    # P24 (patent 손안쪽점): outline below the little finger, 1.5 cm below the little base
+    seg = outl["pts"][tips[4]:]
+    out["P24"] = seg[np.argmin(np.abs(seg[:, 1] - (out["P19"][1] - 15.0)))]
+    # derived points, same rules as the SW: thirds of tip->base (z = 0), wrist midpoint (z = 1)
+    for tip_k, base_k, a, b_ in (("P2", "P16", "P7", "P11"), ("P3", "P17", "P8", "P12"),
+                                 ("P4", "P18", "P9", "P13"), ("P5", "P19", "P10", "P14")):
+        t, bpt = out[tip_k], out[base_k]
+        out[a] = np.array([*(t[:2] + (bpt[:2] - t[:2]) / 3.0), 0.0])
+        out[b_] = np.array([*(t[:2] + 2.0 * (bpt[:2] - t[:2]) / 3.0), 0.0])
+    out["P28"] = np.array([*(0.5 * (out["P26"][:2] + out["P27"][:2])), 1.0])
     # back to the obj frame
     res = {k: fr.from_work(v)[0] for k, v in out.items() if k != "thumb_variant"}
     res["frame"] = fr
@@ -338,7 +364,10 @@ def main():
                 for k, tip, base in (("P16", "P2", "P16"), ("P17", "P3", "P17"), ("P18", "P4", "P18"), ("P19", "P5", "P19")):
                     row[f"{k}_axis"] = axis_component(r[k], A[LND_IDX[k]], A[LND_IDX[tip]], A[LND_IDX[base]])
                 land.append({"name": name, **{f"{k}_{c}": float(r[k][i]) for k in
-                             ("P1", "P15", "P20", "P28", "P15_B") for i, c in enumerate("xyz")}})
+                             ALL_POINTS + ["P15_B"] for i, c in enumerate("xyz")}})
+                for k in ALL_POINTS:
+                    row[f"{k}_err3d"] = float(np.linalg.norm(r[k] - A[LND_IDX[k]]))
+                    row[f"{k}_errxy"] = float(np.linalg.norm(r[k][:2] - A[LND_IDX[k]][:2]))
             g15 = A[LND_IDX["P15"]]
             row[f"P15_err[{var}]"] = float(np.linalg.norm(r["P15"] - g15))
             row[f"P15_axis[{var}]"] = axis_component(r["P15"], g15, A[LND_IDX["P1"]], g15)
