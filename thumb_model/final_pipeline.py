@@ -1,14 +1,19 @@
-"""Final mesh-only pipeline: P1, P15 and the xy thumb length from an obj mesh,
-combining the learned model (train_eval.py) with the geometric rule
-(P20 foot + 85-95 degree contour window).
+"""Final mesh-only pipeline: P1, P15 and the xy thumb length from an obj mesh.
 
-  python thumb_model/final_pipeline.py --eval      15-hand held-out evaluation of every
-                                                   P1 / axis / combination variant
-  from final_pipeline import predict_hand          used by predict.py --mode combined
+Two families share this code:
+  combined   learned model (train_eval.py) + geometric rule; adopted setting in final_config.json
+  rule-only  no learning at all: P1 band rule, axis P1 -> midline station, P20 foot window;
+             adopted setting in final_config_rule.json
+
+  python thumb_model/final_pipeline.py --eval [--gate-x 1.0]
+        15-hand held-out evaluation of every P1 / axis / combination variant
+        (combination parameters and the midline station are chosen by nested LOO)
+  from final_pipeline import predict_hand      used by predict.py --mode combined / --mode rule
 
 Rule side (no learning): rule_pipeline.run -> outline, P20', midline;
-P1_rule = midpoint of the midline apex and the max-y point of the tip;
-axis through P1_rule; lower band contour along it; P15_rule = highest contour
+P1_rule = midpoint of the midline apex and the max-y point of the tip, or the
+band rule (outermost point within 1 mm of the max-y point, hand frame);
+axis through P1; lower band contour along it; P15_rule = highest contour
 point among stations reached from P20' at 85-95 deg (foot +/- ~1.1 mm).
 Learned side: coarse -> fine -> atlas P15 and apex P1 from model_hgb.pkl.
 """
@@ -31,9 +36,15 @@ from prep import CACHE_DIR, from_canonical, prepare_mesh  # noqa: E402
 from thumb_views import lower_contour  # noqa: E402
 
 TIP_RADIUS = 25.0            # thumb-tip region used for the apex / max-y search
-AXES = ("learned", "midline_parallel", "midline_foot", "midline")
-P1_SOURCES = ("rule_midpoint", "learned_apex")
+BAND_Y = 1.0                 # P1 band rule: points within this y distance (hand frame) of the max-y point
+STATIONS = (15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 55.0)   # midline station candidates (mm proximal of P1's projection)
+STATION_AXES = tuple(f"midline_t{int(t)}" for t in STATIONS)
+BASE_AXES = ("learned", "midline_parallel", "midline_foot", "midline")
+AXES = BASE_AXES + ("midline_station",)   # midline_station: station chosen by nested LOO (eval) / params["t_station"] (predict)
+P1_SOURCES = ("rule_midpoint", "rule_band1", "learned_apex")
 COMBOS = ("learned", "rule", "average", "gate", "stack")
+COMBINED_FAMILY = dict(p1=("rule_midpoint", "learned_apex"), axes=BASE_AXES, methods=COMBOS)   # what final_config.json is chosen from (unchanged)
+RULE_ONLY_FAMILY = dict(p1=("rule_midpoint", "rule_band1"), axes=("midline_parallel", "midline_foot", "midline", "midline_station"), methods=("rule",))
 
 
 def unit(v):
@@ -49,23 +60,38 @@ def rule_parts(V, F, seed=0):
     d_mid = unit(r["P1"][:2] - r["P15_B"][:2])              # midline direction, towards the tip
     near = S[np.linalg.norm(S[:, :2] - r["P1"][:2], axis=1) < TIP_RADIUS]
     apex = near[np.argmax(near[:, :2] @ d_mid)]
-    work = r["frame"].to_work(near)                          # hand frame: wrist centre -> middle tip = +y
+    work = r["frame"].to_work(near)                          # hand frame: wrist centre -> middle tip = +y, thumb side = +x
     maxy = near[np.argmax(work[:, 1])]
     p1_rule = 0.5 * (apex + maxy)
-    return {"S": S, "P20": r["P20"], "tip_outline": r["P1"], "apex": apex, "maxy": maxy, "P1_rule": p1_rule,
+    top = work[work[:, 1] > work[:, 1].max() - BAND_Y]       # band rule: within 1 mm (y) of the max-y point, outermost on the thumb side
+    p1_band1 = r["frame"].from_work(top[np.argmax(top[:, 0])]).reshape(3)
+    return {"S": S, "P20": r["P20"], "tip_outline": r["P1"], "apex": apex, "maxy": maxy, "P1_rule": p1_rule, "P1_band1": p1_band1,
             "d_mid": d_mid, "P15_B": r["P15_B"], "P15_rule_B": r["P15"], "frame": r["frame"]}
 
 
-def axis_direction(parts, axis, p1, p15_learned=None):
+def p1_from_source(parts, learned, p1_source):
+    if p1_source == "rule_midpoint":
+        return parts["P1_rule"]
+    if p1_source == "rule_band1":
+        return parts["P1_band1"]
+    if p1_source == "learned_apex":
+        return learned["P1"]
+    raise ValueError(p1_source)
+
+
+def axis_direction(parts, axis, p1, p15_learned=None, t_station=None):
     """Unit direction from P1 towards the base for the chosen axis definition."""
     if axis == "learned":
         return unit(p15_learned[:2] - p1[:2])
-    if axis == "midline_parallel":
+    if axis in ("midline_parallel", "midline"):              # parallel to the midline / the midline itself (through the apex)
         return -parts["d_mid"]
-    if axis == "midline_foot":                                # P1_rule -> foot of P20 on the midline axis
+    if axis == "midline_foot":                                # P1 -> foot of P20 on the midline axis
         return unit(parts["P15_rule_B"][:2] - p1[:2])
-    if axis == "midline":                                     # the midline itself (through the apex)
-        return -parts["d_mid"]
+    if axis.startswith("midline_t") or axis == "midline_station":   # P1 -> midline point t_s mm proximal of P1's projection
+        t_s = float(axis[9:]) if axis.startswith("midline_t") else float(t_station)
+        d, b = parts["d_mid"], parts["P15_B"][:2]
+        foot = b + ((p1[:2] - b) @ d) * d
+        return unit(foot - t_s * d - p1[:2])
     raise ValueError(axis)
 
 
@@ -83,6 +109,10 @@ def rule_p15(parts, p1, u_base):
 
 def xy_length(p1, p15):
     return float(np.linalg.norm(np.asarray(p1)[:2] - np.asarray(p15)[:2]))
+
+
+def needs_learning(p1_source, axis, method):
+    return p1_source == "learned_apex" or axis == "learned" or method != "rule"
 
 
 # ------------------------------------------------------------- learned side
@@ -155,19 +185,26 @@ def fit_params(method, rows):
 
 
 # ------------------------------------------------------------- prediction
-def predict_hand(V, F, bundle, p1_source="rule_midpoint", axis="midline_foot", method="rule", params=None):
-    """Mesh-only prediction. Returns dict with P1, P15, length_mm and the parts."""
+def predict_hand(V, F, bundle=None, p1_source="rule_midpoint", axis="midline_foot", method="rule", params=None):
+    """Mesh-only prediction. Returns dict with P1, P15, length_mm and the parts.
+    bundle (the learned model) is only needed when p1_source / axis / method use it."""
+    params = params or {}
     parts = rule_parts(V, F)
-    learned, all_learned = learned_parts_from_model(V, F, bundle)
-    p1 = parts["P1_rule"] if p1_source == "rule_midpoint" else learned["P1"]
-    u = axis_direction(parts, axis, p1, learned["P15"])
+    learned = {"P1": None, "P15": None}
+    if needs_learning(p1_source, axis, method):
+        if bundle is None:
+            raise ValueError(f"configuration ({p1_source}, {axis}, {method}) needs the learned model; pass bundle")
+        learned, _ = learned_parts_from_model(V, F, bundle)
+    p1 = p1_from_source(parts, learned, p1_source)
+    u = axis_direction(parts, axis, p1, learned["P15"], params.get("t_station"))
     p15_rule, t_rule, t_foot, w20, _ = rule_p15(parts, p1, u)
-    t_learned = float((learned["P15"][:2] - p1[:2]) @ u)
-    t = combine(t_learned, t_rule, t_foot, w20, method, params or {})
+    t_learned = float((learned["P15"][:2] - p1[:2]) @ u) if learned["P15"] is not None else None
+    t = combine(t_learned, t_rule, t_foot, w20, method, params)
     p15 = np.array([*(p1[:2] + t * u), p15_rule[2]])
     return {"P1": p1, "P15": p15, "length_mm": xy_length(p1, p15),
             "parts": {"P20": parts["P20"], "P15_rule": p15_rule, "P15_learned": learned["P15"], "P1_learned": learned["P1"],
-                      "t_learned": t_learned, "t_rule": t_rule, "t_foot": t_foot, "axis": axis, "method": method}}
+                      "t_learned": t_learned, "t_rule": t_rule, "t_foot": t_foot, "axis": axis, "method": method,
+                      "t_station": params.get("t_station")}}
 
 
 # ------------------------------------------------------------- evaluation
@@ -186,16 +223,17 @@ def evaluate():
         hands.append((name, A, parts, learned))
         print(f"[{name}] parts ready", flush=True)
 
-    ref = {n: REFERENCE_THUMB_MM[n[:-1]] for n, *_ in hands}
-    rows = []
-    # per hand, per P1 source, per axis: the rule / learned along-axis quantities
+    names = [h[0] for h in hands]
+    ref = {n: REFERENCE_THUMB_MM[n[:-1]] for n in names}
+    concrete_axes = BASE_AXES + STATION_AXES
+    # per hand, per P1 source, per concrete axis: the rule / learned along-axis quantities
     table = {}
     for name, A, parts, learned in hands:
         g1, g15 = A[0], A[14]
         u_true = unit(g1[:2] - g15[:2])
         for p1s in P1_SOURCES:
-            p1 = parts["P1_rule"] if p1s == "rule_midpoint" else learned["P1"]
-            for ax in AXES:
+            p1 = p1_from_source(parts, learned, p1s)
+            for ax in concrete_axes:
                 p1_ax = parts["apex"] if ax == "midline" else p1
                 u = axis_direction(parts, ax, p1_ax, learned["P15"])
                 p15_rule, t_rule, t_foot, w20, _ = rule_p15(parts, p1_ax, u)
@@ -205,27 +243,47 @@ def evaluate():
                 table[(name, p1s, ax)] = dict(p1=p1_ax, u=u, t_learned=t_learned, t_rule=t_rule, t_foot=t_foot, w20=w20, t_true=t_true,
                                               angle=angle, p1_err=float(np.linalg.norm(p1_ax[:2] - g1[:2])),
                                               p15_rule_err=float(np.linalg.norm(p15_rule[:2] - g15[:2])),
-                                              z_rule=p15_rule[2])
-    names = [h[0] for h in hands]
-    # combination methods with nested LOO for their parameters
+                                              z_rule=p15_rule[2], g15=g15)
+        print(f"[{name}] table ready", flush=True)
+
+    def train_rows(p1s, ax, train_names):
+        return [(table[(n, p1s, ax)]["t_learned"], table[(n, p1s, ax)]["t_rule"], table[(n, p1s, ax)]["t_foot"],
+                 table[(n, p1s, ax)]["w20"], table[(n, p1s, ax)]["t_true"]) for n in train_names]
+
+    def entry_result(e, method, params, ref_len):
+        t = combine(e["t_learned"], e["t_rule"], e["t_foot"], e["w20"], method, params)
+        p15 = np.array([*(e["p1"][:2] + t * e["u"]), e["z_rule"]])
+        length = xy_length(e["p1"], p15)
+        return length, length - ref_len, t, p15
+
+    def fmt_params(params):
+        return str({k: (np.round(v, 3).tolist() if hasattr(v, "__len__") else round(v, 3)) for k, v in params.items()})
+
+    rows = []
+    # every configuration; parameters (and the station for midline_station) chosen by nested LOO
     for p1s in P1_SOURCES:
-        for ax in AXES:
+        for ax in concrete_axes + ("midline_station",):
             for method in COMBOS:
-                for i, name in enumerate(names):
-                    train = [(table[(n, p1s, ax)]["t_learned"], table[(n, p1s, ax)]["t_rule"], table[(n, p1s, ax)]["t_foot"],
-                              table[(n, p1s, ax)]["w20"], table[(n, p1s, ax)]["t_true"]) for n in names if n != name]
-                    params = fit_params(method, train)
-                    e = table[(name, p1s, ax)]
-                    t = combine(e["t_learned"], e["t_rule"], e["t_foot"], e["w20"], method, params)
-                    p15 = np.array([*(e["p1"][:2] + t * e["u"]), e["z_rule"]])
-                    g15 = hands[i][1][14]
-                    length = xy_length(e["p1"], p15)
+                for name in names:
+                    train_names = [n for n in names if n != name]
+                    if ax == "midline_station":
+                        best = (np.inf, None, None)
+                        for sax in STATION_AXES:
+                            params = fit_params(method, train_rows(p1s, sax, train_names))
+                            mae = np.mean([abs(entry_result(table[(n, p1s, sax)], method, params, ref[n])[1]) for n in train_names])
+                            if mae < best[0]:
+                                best = (mae, sax, params)
+                        use_ax, params = best[1], {**best[2], "t_station": float(best[1][9:])}
+                    else:
+                        use_ax, params = ax, fit_params(method, train_rows(p1s, ax, train_names))
+                    e = table[(name, p1s, use_ax)]
+                    length, err, t, p15 = entry_result(e, method, params, ref[name])
                     rows.append({"name": name, "p1_source": p1s, "axis": ax, "method": method,
                                  "p1_err_xy": e["p1_err"], "axis_angle_deg": e["angle"],
-                                 "p15_err_xy": float(np.linalg.norm(p15[:2] - g15[:2])),
+                                 "p15_err_xy": float(np.linalg.norm(p15[:2] - e["g15"][:2])),
                                  "p15_err_along": t - e["t_true"],
-                                 "length_pred": length, "length_ref": ref[name], "length_err": length - ref[name],
-                                 "params": str({k: (np.round(v, 3).tolist() if hasattr(v, "__len__") else round(v, 3)) for k, v in params.items()})})
+                                 "length_pred": length, "length_ref": ref[name], "length_err": err,
+                                 "params": fmt_params(params)})
     with open(os.path.join(HERE, "final_eval.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader()
@@ -237,62 +295,105 @@ def evaluate():
         p1 = np.array([r["p1_err_xy"] for r in sel]); ang = np.array([r["axis_angle_deg"] for r in sel])
         return dict(len_mae=np.abs(e).mean(), len_max=np.abs(e).max(), n05=int((np.abs(e) <= 0.5).sum()), n1=int((np.abs(e) <= 1).sum()),
                     n2=int((np.abs(e) <= 2).sum()), p15_sd=a.std(), p15_bias=a.mean(), p1_mae=p1.mean(), ang_mean=ang.mean(), ang_sd=ang.std())
+
+    def select(p1s, ax, method):
+        return [r for r in rows if r["p1_source"] == p1s and r["axis"] == ax and r["method"] == method]
+
     summ = []
     for p1s in P1_SOURCES:
-        for ax in AXES:
+        for ax in concrete_axes + ("midline_station",):
             for method in COMBOS:
-                sel = [r for r in rows if r["p1_source"] == p1s and r["axis"] == ax and r["method"] == method]
-                summ.append({"p1_source": p1s, "axis": ax, "method": method, **stats(sel)})
+                summ.append({"p1_source": p1s, "axis": ax, "method": method, "uses_learning": needs_learning(p1s, ax, method), **stats(select(p1s, ax, method))})
     summ.sort(key=lambda s: s["len_mae"])
     with open(os.path.join(HERE, "final_eval_summary.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(summ[0].keys()))
         w.writeheader()
         w.writerows({k: (f"{v:.3f}" if isinstance(v, float) else v) for k, v in s.items()} for s in summ)
-    print("\nP1 source / axis / method  ->  length MAE, max, <=0.5/1/2 mm | P15 along-axis bias, sd | P1 xy MAE | axis angle mean, sd")
-    for s in summ:
-        print(f"{s['p1_source']:14s} {s['axis']:17s} {s['method']:8s} | {s['len_mae']:5.2f} {s['len_max']:5.2f} {s['n05']:2d}/{s['n1']:2d}/{s['n2']:2d} "
-              f"| {s['p15_bias']:+5.2f} {s['p15_sd']:5.2f} | {s['p1_mae']:4.2f} | {s['ang_mean']:+5.1f} {s['ang_sd']:4.1f}")
-    best = summ[0]
-    print(f"\nbest by length MAE: {best}")
-    print("\nper-hand length error for the best setting:")
-    for r in rows:
-        if r["p1_source"] == best["p1_source"] and r["axis"] == best["axis"] and r["method"] == best["method"]:
+
+    def print_rows(sel, title):
+        print(f"\n{title}\nP1 source / axis / method  ->  length MAE, max, <=0.5/1/2 mm | P15 along-axis bias, sd | P1 xy MAE | axis angle mean, sd")
+        for s in sel:
+            print(f"{s['p1_source']:14s} {s['axis']:17s} {s['method']:8s} | {s['len_mae']:5.2f} {s['len_max']:5.2f} {s['n05']:2d}/{s['n1']:2d}/{s['n2']:2d} "
+                  f"| {s['p15_bias']:+5.2f} {s['p15_sd']:5.2f} | {s['p1_mae']:4.2f} | {s['ang_mean']:+5.1f} {s['ang_sd']:4.1f}")
+
+    def in_family(s, fam):
+        return s["p1_source"] in fam["p1"] and s["axis"] in fam["axes"] and s["method"] in fam["methods"]
+
+    print_rows(summ[:20], f"top 20 of {len(summ)} configurations (nested LOO for parameters / station)")
+    rule_only = [s for s in summ if not s["uses_learning"]]
+    print_rows(rule_only, "no-learning configurations (P1 rule, mesh axis, rule P15); midline_tNN = fixed station (tuned on all 15), midline_station = nested LOO")
+
+    def per_hand(best):
+        print(f"\nper-hand length error for {best['p1_source']} / {best['axis']} / {best['method']}:")
+        for r in select(best["p1_source"], best["axis"], best["method"]):
             print(f"  {r['name']}: pred {r['length_pred']:.2f} ref {r['length_ref']:.1f} err {r['length_err']:+.2f} | P15 along {r['p15_err_along']:+.2f} | P1 xy {r['p1_err_xy']:.2f} | {r['params']}")
-    # default configuration for predict.py: the best setting, its parameters fitted on all 15 hands
-    key = (best["p1_source"], best["axis"])
-    full = [(table[(n, *key)]["t_learned"], table[(n, *key)]["t_rule"], table[(n, *key)]["t_foot"], table[(n, *key)]["w20"], table[(n, *key)]["t_true"]) for n in names]
-    params = {k: (v.tolist() if hasattr(v, "tolist") else v) for k, v in fit_params(best["method"], full).items()}
-    note = "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise"
-    if GATE_X_FIXED is not None and best["method"] == "gate":
+
+    def full_params(best):
+        """parameters fitted on all 15 hands for the deployable config (station: lowest 15-hand MAE)."""
+        ax = best["axis"]
+        if ax == "midline_station":
+            cands = []
+            for sax in STATION_AXES:
+                params = fit_params(best["method"], train_rows(best["p1_source"], sax, names))
+                mae = np.mean([abs(entry_result(table[(n, best["p1_source"], sax)], best["method"], params, ref[n])[1]) for n in names])
+                cands.append((mae, sax, params))
+            mae, sax, params = min(cands, key=lambda c: c[0])
+            params = {**params, "t_station": float(sax[9:])}
+        else:
+            params = fit_params(best["method"], train_rows(best["p1_source"], ax, names))
+        return {k: (v.tolist() if hasattr(v, "tolist") else v) for k, v in params.items()}
+
+    def save_config(best, path, note):
+        config = {"p1_source": best["p1_source"], "axis": best["axis"], "method": best["method"], "params": full_params(best),
+                  "loo_15_hands": {k: (float(v) if isinstance(v, (float, np.floating)) else int(v)) for k, v in best.items() if k not in ("p1_source", "axis", "method", "uses_learning")},
+                  "note": note}
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(config, fh, ensure_ascii=False, indent=2)
+        print(f"\nsaved {os.path.basename(path)}: {config}")
+        return config
+
+    # combined family (unchanged selection rule) -> final_config.json
+    best_c = next(s for s in summ if in_family(s, COMBINED_FAMILY))
+    per_hand(best_c)
+    note = "chosen by 15-hand held-out length MAE among the combined family (2 P1 x 4 axes x 5 methods); differences of ~0.2 mm are within noise"
+    if GATE_X_FIXED is not None and best_c["method"] == "gate":
         note += f"; gate threshold fixed manually at {GATE_X_FIXED} mm (nested LOO picked 1.5; MAE is flat 0.75-2.0 mm)"
-    config = {"p1_source": best["p1_source"], "axis": best["axis"], "method": best["method"], "params": params,
-              "loo_15_hands": {k: (float(v) if isinstance(v, (float, np.floating)) else int(v)) for k, v in best.items() if k not in ("p1_source", "axis", "method")},
-              "note": note}
-    with open(os.path.join(HERE, "final_config.json"), "w", encoding="utf-8") as fh:
-        json.dump(config, fh, ensure_ascii=False, indent=2)
-    print(f"\nsaved final_config.json: {config}")
-    length_figure(rows, names, best)
+    save_config(best_c, os.path.join(HERE, "final_config.json"), note)
+    # rule-only family (no learning; station by nested LOO) -> final_config_rule.json
+    best_r = next(s for s in summ if in_family(s, RULE_ONLY_FAMILY))
+    per_hand(best_r)
+    save_config(best_r, os.path.join(HERE, "final_config_rule.json"),
+                "no learning: chosen by 15-hand held-out length MAE among the rule-only family (2 P1 x 4 axes); "
+                "t_station here is the station with the lowest 15-hand MAE (the held-out number used nested LOO per fold)")
+    ref_r = {"p1_source": "rule_midpoint", "axis": "midline_foot", "method": "rule"}
+    length_figure(rows, names, [(dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="learned"), "학습 P15만", "#eb6834"),
+                                (dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="rule"), "규칙 P15만", "#2a78d6"),
+                                (best_c, f"채택: {best_c['method']}", "#0b0b0b")],
+                  f"메쉬만 입력, 15명 held-out  |  P1 = {best_c['p1_source']}, 축 = {best_c['axis']}", "final_length_errors.png")
+    length_figure(rows, names, [(best_c, f"학습+규칙 채택 ({best_c['method']})", "#0b0b0b"),
+                                (ref_r, "규칙만: P1 중점, 축 P20 발", "#2a78d6"),
+                                (best_r, f"규칙만 최선: P1 {best_r['p1_source'][5:]}, 축 {best_r['axis']}", "#1a9850")],
+                  "학습 없는 규칙 전용 파이프라인 vs 채택된 결합 파이프라인 (15명 held-out)", "final_length_errors_rule_only.png")
 
 
-def length_figure(rows, names, best):
-    """Per-hand length error: learned only, rule only, and the chosen combination (same P1/axis)."""
+def length_figure(rows, names, series, title, fname):
+    """Per-hand length error for a few (selector, label, colour) series."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     plt.rcParams["font.family"] = "Malgun Gothic"
     plt.rcParams["axes.unicode_minus"] = False
-    series = [("learned", "학습 P15만", "#eb6834"), ("rule", "규칙 P15만", "#2a78d6"), (best["method"], f"채택: {best['method']}", "#0b0b0b")]
     fig, ax = plt.subplots(figsize=(12, 4.2))
     x = np.arange(len(names))
     ax.axhspan(-0.5, 0.5, color="#f0efec", zorder=0)
     ax.axhline(0, color="#c3c2b7", lw=0.8)
-    for j, (m, label, col) in enumerate(series):
-        e = [next(r["length_err"] for r in rows if r["name"] == n and r["p1_source"] == best["p1_source"] and r["axis"] == best["axis"] and r["method"] == m) for n in names]
+    for j, (sel, label, col) in enumerate(series):
+        e = [next(r["length_err"] for r in rows if r["name"] == n and r["p1_source"] == sel["p1_source"] and r["axis"] == sel["axis"] and r["method"] == sel["method"]) for n in names]
         ax.scatter(x + (j - 1) * 0.22, e, s=36, color=col, edgecolor="#fcfcfb", linewidth=1, zorder=3, label=f"{label} (MAE {np.abs(e).mean():.2f})")
     ax.set_xticks(x)
     ax.set_xticklabels([n[3:9] for n in names], fontsize=8)
     ax.set_ylabel("엄지 길이 오차 = 예측 - 기준값 (mm)")
-    ax.set_title(f"메쉬만 입력, 15명 held-out  |  P1 = {best['p1_source']}, 축 = {best['axis']}", loc="left", fontsize=10)
+    ax.set_title(title, loc="left", fontsize=10)
     ax.yaxis.grid(True, color="#e1e0d9")
     ax.set_axisbelow(True)
     for s in ("top", "right"):
@@ -300,7 +401,7 @@ def length_figure(rows, names, best):
     ax.legend(frameon=False, fontsize=8.5, ncol=3, loc="upper left", bbox_to_anchor=(0, -0.14))
     fig.tight_layout()
     os.makedirs(os.path.join(HERE, "report"), exist_ok=True)
-    fig.savefig(os.path.join(HERE, "report", "final_length_errors.png"), dpi=160)
+    fig.savefig(os.path.join(HERE, "report", fname), dpi=160)
     plt.close(fig)
 
 

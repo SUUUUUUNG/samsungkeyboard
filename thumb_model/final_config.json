@@ -17,5 +17,5 @@
     "ang_mean": 0.18697077462915127,
     "ang_sd": 1.3345130345936287
   },
-  "note": "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise; gate threshold fixed manually at 1.0 mm (nested LOO picked 1.5; MAE is flat 0.75-2.0 mm)"
+  "note": "chosen by 15-hand held-out length MAE among the combined family (2 P1 x 4 axes x 5 methods); differences of ~0.2 mm are within noise; gate threshold fixed manually at 1.0 mm (nested LOO picked 1.5; MAE is flat 0.75-2.0 mm)"
 }
