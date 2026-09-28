@@ -1,0 +1,101 @@
+train 12: ['20_F_0004G', '20_F_0097G', '20_F_2633G', '20_F_2634G', '20_F_2636G', '20_F_2637G', '20_M_1113G', '20_M_1114G', '20_M_1115G', '20_M_1117G', '20_M_1559G', '20_M_1573G']
+test  3: ['20_F_0179G', '20_F_2635G', '20_M_1116G']
+[cv] 20_F_0004G: 70s  best pair fine/coarse+atlas len_err=-0.01
+[cv] 20_F_0097G: 73s  best pair coarse/atlas len_err=-3.40
+[cv] 20_F_0179G: 60s  best pair fine/fine len_err=-0.01
+[cv] 20_F_2633G: 58s  best pair coarse/coarse len_err=-0.00
+[cv] 20_F_2634G: 60s  best pair atlas/fine+atlas len_err=+0.01
+[cv] 20_F_2635G: 58s  best pair atlas/fine len_err=+0.32
+[cv] 20_F_2636G: 58s  best pair fine/coarse+atlas len_err=-0.00
+[cv] 20_F_2637G: 57s  best pair apex/atlas len_err=-0.80
+[cv] 20_M_1113G: 60s  best pair coarse/atlas len_err=-3.63
+[cv] 20_M_1114G: 58s  best pair fine/coarse len_err=-0.33
+[cv] 20_M_1115G: 58s  best pair atlas/coarse len_err=-0.77
+[cv] 20_M_1116G: 57s  best pair apex/atlas len_err=-3.42
+[cv] 20_M_1117G: 58s  best pair apex/atlas len_err=+1.57
+[cv] 20_M_1559G: 61s  best pair coarse/atlas len_err=+0.06
+[cv] 20_M_1573G: 59s  best pair fine/fine len_err=+4.05
+
+Leave-one-out over 15 hands (length error, mm)
+P1      P15        MAE   bias    max <=0.5  P1err P15err
+coarse  atlas     1.84  -0.26   4.47   3/15   1.81   2.39
+fine    atlas     1.88  -0.23   4.10   2/15   1.90   2.39
+mean4   atlas     1.90  -0.27   4.38   2/15   1.65   2.39
+atlas   atlas     1.94  -0.34   4.67   2/15   1.58   2.39
+apex+atlas atlas     1.94  -0.29   4.49   3/15   1.62   2.39
+apex    atlas     1.95  -0.24   4.31   2/15   1.80   2.39
+fine    fine+atlas   1.96  -0.53   5.13   4/15   1.90   2.60
+fine    coarse+atlas   2.01  -0.44   5.06   4/15   1.90   2.58
+coarse  fine+atlas   2.02  -0.56   4.68   3/15   1.81   2.60
+mean4   fine+atlas   2.06  -0.57   5.10   2/15   1.65   2.60
+coarse  coarse+atlas   2.08  -0.46   4.67   4/15   1.81   2.58
+atlas   fine+atlas   2.09  -0.64   5.16   2/15   1.58   2.60
+mean4   coarse+atlas   2.11  -0.47   5.03   4/15   1.65   2.58
+fine    mean3     2.12  -0.57   5.49   4/15   1.90   2.77
+apex+atlas fine+atlas   2.13  -0.59   5.29   2/15   1.62   2.60
+atlas   coarse+atlas   2.14  -0.54   5.09   3/15   1.58   2.58
+apex    fine+atlas   2.17  -0.54   5.42   2/15   1.80   2.60
+apex+atlas coarse+atlas   2.18  -0.49   5.22   2/15   1.62   2.58
+coarse  mean3     2.19  -0.59   5.03   2/15   1.81   2.77
+apex    coarse+atlas   2.23  -0.44   5.35   2/15   1.80   2.58
+mean4   mean3     2.23  -0.60   5.45   3/15   1.65   2.77
+atlas   mean3     2.25  -0.67   5.52   2/15   1.58   2.77
+apex+atlas mean3     2.30  -0.62   5.64   1/15   1.62   2.77
+apex    mean3     2.34  -0.57   5.77   1/15   1.80   2.77
+fine    fine      2.34  -0.82   6.25   3/15   1.90   3.29
+coarse  fine      2.44  -0.84   5.78   2/15   1.81   3.29
+mean4   fine      2.45  -0.85   6.21   1/15   1.65   3.29
+fine    coarse    2.49  -0.63   6.18   3/15   1.90   3.17
+atlas   fine      2.50  -0.92   6.28   2/15   1.58   3.29
+apex+atlas fine      2.52  -0.87   6.39   1/15   1.62   3.29
+coarse  coarse    2.53  -0.65   5.72   1/15   1.81   3.17
+apex    fine      2.55  -0.82   6.50   1/15   1.80   3.29
+mean4   coarse    2.56  -0.66   6.14   1/15   1.65   3.17
+atlas   coarse    2.59  -0.73   6.21   1/15   1.58   3.17
+apex+atlas coarse    2.63  -0.68   6.33   1/15   1.62   3.17
+apex    coarse    2.67  -0.63   6.45   1/15   1.80   3.17
+
+chosen: P1=coarse  P15=atlas  bias correction=-0.26 mm
+[test] 20_F_0179G: pred=47.40 ref=45.6 err=+1.80 (bias-corrected +2.06)  P1err=1.54 P15err=2.17
+[test] 20_F_2635G: pred=46.40 ref=44.6 err=+1.80 (bias-corrected +2.06)  P1err=1.91 P15err=3.60
+[test] 20_M_1116G: pred=51.34 ref=55.1 err=-3.76 (bias-corrected -3.50)  P1err=1.10 P15err=3.14
+
+Test hands, all method pairs
+P1      P15        MAE   bias    max <=0.5  P1err P15err
+coarse  fine+atlas   1.98  -0.73   4.07   0/3    1.52   2.73
+coarse  fine      1.99  -1.40   4.37   0/3    1.52   2.84
+coarse  mean3     2.06  -0.89   4.44   1/3    1.52   2.79
+atlas   fine      2.09  -1.42   4.58   0/3    1.88   2.84
+atlas   fine+atlas   2.09  -0.75   4.26   0/3    1.88   2.73
+fine    fine      2.11  -1.14   4.27   0/3    1.35   2.84
+mean4   fine      2.15  -1.17   4.36   0/3    1.48   2.84
+atlas   mean3     2.17  -0.92   4.63   1/3    1.88   2.79
+fine    fine+atlas   2.17  -0.47   3.97   0/3    1.35   2.73
+mean4   fine+atlas   2.20  -0.50   4.05   0/3    1.48   2.73
+apex+atlas fine      2.25  -1.07   4.39   0/3    1.58   2.84
+fine    mean3     2.26  -0.63   4.34   1/3    1.35   2.79
+coarse  coarse    2.27  -1.22   5.18   1/3    1.52   3.00
+mean4   mean3     2.28  -0.67   4.42   1/3    1.48   2.79
+apex+atlas fine+atlas   2.32  -0.40   4.07   0/3    1.58   2.73
+coarse  coarse+atlas   2.34  -0.64   4.47   0/3    1.52   2.86
+atlas   coarse    2.35  -1.24   5.36   1/3    1.88   3.00
+apex+atlas mean3     2.40  -0.56   4.44   1/3    1.58   2.79
+apex    fine      2.41  -0.71   4.20   1/3    1.51   2.84
+fine    coarse    2.42  -0.96   5.08   1/3    1.35   3.00
+atlas   coarse+atlas   2.44  -0.66   4.65   0/3    1.88   2.86
+mean4   coarse    2.44  -0.99   5.16   1/3    1.48   3.00
+coarse  atlas     2.45  -0.05   3.76   0/3    1.52   2.97
+fine    coarse+atlas   2.53  -0.38   4.37   0/3    1.35   2.86
+apex    fine+atlas   2.55  -0.04   3.88   0/3    1.51   2.73
+atlas   atlas     2.55  -0.07   3.94   0/3    1.88   2.97
+mean4   coarse+atlas   2.55  -0.41   4.45   0/3    1.48   2.86
+apex+atlas coarse    2.56  -0.89   5.17   1/3    1.58   3.00
+apex    mean3     2.63  -0.21   4.25   0/3    1.51   2.79
+fine    atlas     2.64  +0.20   3.66   0/3    1.35   2.97
+mean4   atlas     2.67  +0.17   3.74   0/3    1.48   2.97
+apex+atlas coarse+atlas   2.67  -0.31   4.46   0/3    1.58   2.86
+apex+atlas atlas     2.78  +0.28   3.75   0/3    1.58   2.97
+apex    coarse    2.79  -0.53   4.99   1/3    1.51   3.00
+apex    coarse+atlas   2.90  +0.05   4.28   0/3    1.51   2.86
+apex    atlas     3.01  +0.63   3.57   0/3    1.51   2.97
+saved C:\Users\heony\Documents\samsungkeyboard\thumb_model\model_hgb.pkl

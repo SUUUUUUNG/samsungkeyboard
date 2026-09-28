@@ -1,0 +1,21 @@
+{
+  "p1_source": "rule_midpoint",
+  "axis": "learned",
+  "method": "gate",
+  "params": {
+    "x": 1.5
+  },
+  "loo_15_hands": {
+    "len_mae": 1.6297674328250074,
+    "len_max": 4.61515335503924,
+    "n05": 1,
+    "n1": 5,
+    "n2": 12,
+    "p15_sd": 1.6647833578057374,
+    "p15_bias": -0.5896922047029548,
+    "p1_mae": 1.1146775935924265,
+    "ang_mean": 0.18697077462915127,
+    "ang_sd": 1.3345130345936287
+  },
+  "note": "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise"
+}

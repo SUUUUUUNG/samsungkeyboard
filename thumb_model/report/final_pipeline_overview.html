@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>엄지 길이 산출 파이프라인 개요</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781; --grid:#e1e0d9; --ring:rgba(11,11,11,.10);
+  --band:#f0efec; --accent:#2a78d6; --accent-soft:#e3eefb; --learned:#eb6834; --rule:#2a78d6; --warn:#b45309;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#3987e5; --accent-soft:#16253a; --learned:#d95926; --rule:#3987e5; --warn:#f59e0b;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#3987e5; --accent-soft:#16253a; --learned:#d95926; --rule:#3987e5; --warn:#f59e0b;
+}
+body{margin:0;background:var(--page);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;font-size:15px;line-height:1.65}
+.wrap{max-width:960px;margin:0 auto;padding-block:32px 56px;padding-inline:20px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+h1{font-size:28px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:19px;font-weight:600;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--grid)}
+h3{font-size:15.5px;font-weight:600;margin:20px 0 6px}
+p{max-width:70ch;margin:8px 0;color:var(--ink-2)}
+p.lead{color:var(--ink);font-size:16.5px}
+strong{color:var(--ink)}
+.callout{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:4px 0;color:var(--ink)}
+.flow{display:flex;flex-direction:column;gap:0;margin:18px 0;max-width:760px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:14px 16px;background:var(--surface);border:1px solid var(--ring);border-radius:8px}
+.step + .step{margin-top:10px}
+.step .num{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--page);display:grid;place-items:center;font-weight:600;font-size:14px}
+.step h3{margin:2px 0 4px}
+.step p{margin:2px 0}
+.tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px;color:#fff}
+.tag.rule{background:var(--rule)}.tag.learned{background:var(--learned)}.tag.both{background:var(--ink);color:var(--page)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;margin:10px 0}
+th{font-weight:500;color:var(--ink-2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--muted)}
+td{padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+.tbl{overflow-x:auto}
+figure{margin:14px 0;background:var(--surface);border:1px solid var(--ring);border-radius:8px;padding:10px}
+figure img{max-width:100%;display:block;border-radius:4px}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+dl{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;max-width:76ch}
+dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
+.note{font-size:13px;color:var(--muted)}
+@media (max-width:640px){h1{font-size:23px}.wrap{padding-inline:16px}dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">samsungkeyboard · 브랜치 hy1 · 2026-09-28 · 구현·평가 완료</div>
+  <h1>엄지 길이 산출 파이프라인 개요</h1>
+  <p class="lead">손 3D 메쉬(obj) 하나만 넣으면 <strong>P1(엄지 끝)</strong>과 <strong>P15(엄지 밑 기준점)</strong>을 찍고, 두 점의 xy 평면 거리 = <strong>엄지 길이</strong>를 내는 알고리즘입니다. 따로 만들었던 두 재료 — 학습 모델과 기하 규칙 — 를 하나로 묶었습니다. 실행: <code>python thumb_model/predict.py hand.obj --mode combined</code></p>
+
+  <div class="callout">
+    <p><strong>결과 (15명, 각자 처음 보는 손으로 평가).</strong> 엄지 길이 평균 오차 <strong>1.63mm</strong>(최대 4.6), 1mm 이내 5명, 2mm 이내 12명, 0.5mm 이내 1명. 학습 모델만 쓸 때(1.95mm)보다 나아졌지만 목표 0.5mm에는 미달입니다. 두 재료의 P15 오차가 사람별로 같은 방향으로 틀리기 때문(상관 0.73)에 결합의 이득이 제한적입니다.</p>
+  </div>
+
+  <h2>1. 무엇을 찾는가</h2>
+  <dl>
+    <dt>P1</dt><dd>엄지 끝점. 손 메쉬에서 비교적 잘 잡힙니다.</dd>
+    <dt>P15</dt><dd>엄지 밑(첫마디 뼈가 손바닥과 만나는 부근) 기준점. 손바닥이 유리판에 눌려 있어 모양 단서가 약하고, 이 점이 전체 오차의 대부분을 차지합니다.</dd>
+    <dt>엄지 길이</dt><dd>P1과 P15의 xy 평면 거리(높이 z는 무시). 기준값은 랜드마크 SW가 낸 값이며 15명분이 있습니다.</dd>
+    <dt>정답</dt><dd>비공개 SW가 찍은 랜드마크(lnd). SW의 규칙은 모르므로 "블랙박스 재현"입니다.</dd>
+  </dl>
+
+  <h2>2. 두 가지 재료</h2>
+  <h3>재료 A — 학습 모델 <span class="tag learned">learned</span></h3>
+  <p>메쉬의 각 점마다 "주변 모양" 특징 32개를 계산하고, 15명 정답으로 <em>"이 점은 P15에서 몇 mm 떨어져 있나"</em>를 예측하도록 학습시켰습니다(부스팅 트리). 예측 거리가 가장 짧은 점들을 모아 대략의 위치를 잡고(coarse), 그 근처에서 다시 정밀하게 잡고(fine), 마지막으로 다른 사람들의 정답 주변 조각을 이 손에 맞춰 붙여 보정합니다(atlas). P1은 엄지 축 방향으로 가장 먼 점(apex)으로 잡습니다.</p>
+  <p class="note">지금까지 성능(15명 각각을 학습에서 빼고 예측): P15 축 방향 편차 ±2.5mm, 엄지 길이 평균 오차 2.10mm.</p>
+
+  <h3>재료 B — 기하 규칙 <span class="tag rule">rule</span></h3>
+  <p>특허(KR 10-1217207)의 방식을 재구성한 것입니다. 엄지와 검지 사이 오목한 곳(P20, 실루엣에서 잘 잡힘)을 엄지 축에 <strong>수직으로 내린 자리</strong>가 P15의 기준이 되고, 그 자리 앞뒤 약 1mm 안에서 <strong>손바닥 밑면이 유리에서 가장 많이 뜬 점</strong>을 P15로 고릅니다.</p>
+  <p class="note">정답 축·정답 P20을 넣었을 때 P15 편차 ±2.1mm(최대 3.8). 메쉬만으로 돌리면 P20과 축의 재구성 오차가 조금 더해집니다.</p>
+
+  <h2>3. 파이프라인 단계</h2>
+  <div class="flow">
+    <div class="step"><div class="num">1</div><div><h3>메쉬 읽기와 표면 점 만들기</h3><p>obj의 정점(약 1.6mm 간격)에 표면 샘플(1mm²당 4개)을 더해 촘촘한 점구름을 만듭니다. 이후 모든 계산은 이 점들로 합니다.</p></div></div>
+    <div class="step"><div class="num">2</div><div><h3>외곽선에서 손가락 끝과 P20 찾기 <span class="tag rule">rule</span></h3><p>손목 중심에서 방사형으로 훑어 실루엣(외곽선)을 얻고, 튀어나온 곳 5개 = 손가락 끝, 사이의 들어간 곳 = 손가락 사이 오목점. 엄지–검지 오목점이 P20입니다(xy 오차 약 1.5mm).</p></div></div>
+    <div class="step"><div class="num">3</div><div><h3>P1 찍기 <span class="tag rule">rule</span></h3><p>엄지의 기하학적 중심선을 만들고 그 끝(apex)과 손 좌표계에서 y가 가장 큰 점의 <strong>중점</strong>을 P1로 둡니다. SW의 P1이 중심선 끝에서 검지 쪽으로 약 2.8mm 치우쳐 있다는 관찰에서 나온 규칙이며, 상수 보정 없이 xy 오차 1.25mm입니다.</p></div></div>
+    <div class="step"><div class="num">4</div><div><h3>엄지 축 정하기 <span class="tag both">both</span></h3><p>P1을 지나는 직선이 필요합니다. 후보 네 가지(P1 → 학습 P15 직선 / 중심선과 평행 / 중심선 위 P20 발로 / 중심선 자체)를 15명 검증으로 비교한 결과 <strong>P1 → 학습 모델의 P15 직선</strong>이 SW 축과 0.2 ± 1.3°로 가장 가까웠습니다(중심선은 5 ± 3°). 학습 모델이 P15의 옆 방향 위치를 잘 잡는다는 뜻입니다.</p></div></div>
+    <div class="step"><div class="num">5</div><div><h3>밑면 컨투어와 규칙 P15 <span class="tag rule">rule</span></h3><p>축을 따라 1mm마다 축 주변 ±12mm 안 점들 중 가장 낮은 z를 이어 "손바닥 밑면이 얼마나 떠 있나" 곡선을 만듭니다. P20을 축에 수직으로 내린 자리 ±1.1mm(각도로 85~95°) 안에서 이 곡선이 가장 높은 점 = 규칙 P15.</p></div></div>
+    <div class="step"><div class="num">6</div><div><h3>학습 P15 <span class="tag learned">learned</span></h3><p>저장된 모델(model_hgb.pkl)로 coarse → fine → atlas 순서로 P15를 예측합니다.</p></div></div>
+    <div class="step"><div class="num">7</div><div><h3>두 P15를 하나로 <span class="tag both">both</span></h3><p>후보 방식(학습만 / 규칙만 / 가중 평균 / 게이트 / 선형 결합)을 15명 검증으로 비교해 <strong>게이트</strong>를 채택했습니다: 축 위에서 학습 P15와 규칙 P15가 1.5mm 이내면 학습 값을, 더 벌어지면 규칙 값을 씁니다. 규칙만 쓴 경우(1.75mm)와의 차이는 우연 범위이며, 매개변수가 없는 규칙만 쓰는 것도 합리적인 선택입니다.</p></div></div>
+    <div class="step"><div class="num">8</div><div><h3>엄지 길이 출력</h3><p>길이 = P1과 P15의 xy 거리. 좌표(obj 좌표계), 길이, 확인용 PLY 파일을 냅니다. <code>predict.py --mode combined</code>로 호출.</p></div></div>
+  </div>
+
+  <h2>4. 어떻게 검증하나</h2>
+  <p><strong>LOO(leave-one-out)</strong>: 15명 중 한 명을 빼고 나머지 14명으로 모델·가중치를 정한 뒤 뺀 사람을 예측합니다. 15번 반복하면 15명 전원이 "처음 보는 손"으로 평가됩니다. 가중치나 문턱값 같은 선택도 이 안에서만 정합니다(바깥 사람의 정답을 보지 않음).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>지표</th><th>학습 모델만 (이전)</th><th>최종 파이프라인 (결과)</th></tr></thead>
+    <tbody>
+      <tr><td>P1 xy 오차</td><td class="n">약 2mm (학습 apex)</td><td class="n">1.11mm (중점 규칙)</td></tr>
+      <tr><td>엄지 축 각도 오차</td><td class="n">—</td><td class="n">0.2 ± 1.3°</td></tr>
+      <tr><td>P15 축 방향 편차 (sd)</td><td class="n">2.34mm</td><td class="n">1.66mm</td></tr>
+      <tr><td>엄지 길이 평균 오차 (15명)</td><td class="n">1.95mm</td><td class="n"><strong>1.63mm</strong> (최대 4.6)</td></tr>
+      <tr><td>0.5 / 1 / 2mm 이내 인원</td><td class="n">2 / 6 / 9</td><td class="n">1 / 5 / 12</td></tr>
+    </tbody>
+  </table></div>
+  <figure><img src="final_length_errors.png" alt="15명 사람별 엄지 길이 오차: 학습만, 규칙만, 채택한 게이트"><figcaption>사람별 엄지 길이 오차. 주황 = 학습 P15만, 파랑 = 규칙 P15만, 검정 = 채택(게이트). 1113·1116은 어떤 방식으로도 −3~−5mm가 남습니다.</figcaption></figure>
+
+  <h2>5. 왜 0.5mm가 안 되나 (한 문단)</h2>
+  <p>P15는 유리판에 눌린 평평한 손바닥 위에 있어 메쉬에 모양 단서가 거의 없습니다. 어떤 방법을 써도 같은 사람들(0097, 1113, 1573 등)이 같은 방향으로 3~5mm 틀리는데, 이는 노이즈가 아니라 SW가 우리 메쉬에 없는 정보(원본 고해상도 스캔의 주름, 텍스처, 또는 비공개 상수 규칙)를 썼다는 뜻입니다. 특허가 공개돼 있으므로 공급사에 기저점 정의를 문의하는 것이 가장 확실한 길입니다.</p>
+
+  <h2>6. 그림으로 보는 핵심 개념</h2>
+  <figure><img src="thumb_views/_how_contour_is_built.png" alt="엄지 축 띠 하단 컨투어를 만드는 과정: 위에서 본 띠와 판, 축 방향으로 펼친 점들과 최저 z 곡선"><figcaption>밑면 컨투어(5단계): 축 주변 띠를 1mm 판으로 잘라 각 판의 최저 z를 이은 곡선. ▼ 접촉 최저점, ▲ 들림 봉우리.</figcaption></figure>
+  <figure><img src="axis_bias_explainer.png" alt="메쉬 중심선(파랑)과 SW 축(검정)의 각도 차이와 P1·P15의 옆 치우침"><figcaption>축 문제(3·4단계): 메쉬 중심선(파랑)과 SW의 P1–P15 축(검정)은 평균 5° 어긋납니다. SW의 P1이 중심선 끝에서 검지 쪽으로 치우쳐 있기 때문이며, 3단계의 P1 규칙이 이 몫을 없앱니다.</figcaption></figure>
+  <figure><img src="p15_foot85_95/20_M_1573G.png" alt="P20 수직 발 85~95도 창에서 고른 P15 추정 예시"><figcaption>규칙 P15(5단계): × 가 P20의 수직 발, 분홍 구간이 85~95° 창, ★ 이 창 안 컨투어 최고점 = 추정 P15. 이 손(1573)은 정답이 3.8mm 손목 쪽에 있어 규칙의 한계가 보이는 예입니다.</figcaption></figure>
+
+  <h2>7. 용어 풀이</h2>
+  <dl>
+    <dt>apex</dt><dd>엄지 축 방향으로 가장 멀리 나간 메쉬 점. 엄지 끝의 기하학적 꼭짓점.</dd>
+    <dt>중심선</dt><dd>엄지를 따라 몇 군데에서 양쪽 가장자리의 중점을 찍어 이은 직선. 메쉬만으로 만드는 엄지 축.</dd>
+    <dt>수직 발</dt><dd>한 점(P20)에서 직선(축)에 수직으로 내렸을 때 만나는 점.</dd>
+    <dt>띠 컨투어</dt><dd>축 주변 ±12mm 띠 안에서 1mm마다 가장 낮은 z를 이은 곡선. 손바닥 밑면이 유리에서 뜬 정도.</dd>
+    <dt>atlas</dt><dd>다른 사람들의 정답 주변 메쉬 조각을 이 손에 맞춰 붙여 정답 위치를 옮겨 오는 보정.</dd>
+    <dt>LOO</dt><dd>한 명씩 빼고 평가하는 교차검증. 15명 전원이 처음 보는 손으로 평가됨.</dd>
+    <dt>obj 좌표계</dt><dd>스캔 메쉬의 원래 좌표. 바닥(유리)이 z=0, 손가락 방향이 +y.</dd>
+  </dl>
+
+  <p class="note">관련 파일: thumb_model/rule_pipeline.py(외곽선·P20·중심선), thumb_model/train_eval.py·model_hgb.pkl(학습 모델), thumb_model/thumb_views.py(컨투어), thumb_model/p15_foot_window_views.py(규칙 P15). 구현 예정: thumb_model/final_pipeline.py, predict.py --mode combined.</p>
+</div>
+</body>
+</html>

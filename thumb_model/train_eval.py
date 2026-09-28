@@ -34,7 +34,10 @@ from sklearn.preprocessing import StandardScaler
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from align_landmarks import REFERENCE_THUMB_MM, sample_surface  # noqa: E402
-from prep import CACHE_DIR, HEAT_SIGMA, LANDMARKS, OFFSET_RADIUS  # noqa: E402
+from prep import CACHE_DIR, HEAT_SIGMA, OFFSET_RADIUS  # noqa: E402
+
+# this script models the thumb only (prep.LANDMARKS now labels all 19 measured points)
+LANDMARKS = {"P1": 0, "P15": 14}
 
 TEST_SUBJECTS = ["20_F_0179G", "20_F_2635G", "20_M_1116G"]
 SEED = 0

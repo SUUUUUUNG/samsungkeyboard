@@ -44,19 +44,47 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("obj")
     ap.add_argument("--model", default=MODEL_PATH)
+    ap.add_argument("--mode", choices=("learned", "combined"), default="learned",
+                    help="learned: apex/atlas model only; combined: learned + geometric rule (final_pipeline.py)")
+    ap.add_argument("--p1", default=None, help="combined mode: P1 source (rule_midpoint | learned_apex); default from final_config.json")
+    ap.add_argument("--axis", default=None, help="combined mode: thumb axis definition; default from final_config.json")
+    ap.add_argument("--method", default=None, help="combined mode: P15 combination (learned | rule | average | gate | stack); default from final_config.json")
     args = ap.parse_args()
+    if args.mode == "combined":
+        import json
+        cfg_path = os.path.join(HERE, "final_config.json")
+        cfg = json.load(open(cfg_path, encoding="utf-8")) if os.path.exists(cfg_path) else {}
+        args.p1 = args.p1 or cfg.get("p1_source", "rule_midpoint")
+        args.axis = args.axis or cfg.get("axis", "learned")
+        args.method = args.method or cfg.get("method", "rule")
+        cfg_params = cfg.get("params", {}) if cfg.get("method") == args.method else {}
     with open(args.model, "rb") as fh:
         bundle = pickle.load(fh)
-    p1, p15, length = predict_file(args.obj, bundle)
-    print(f"P1  (thumb tip):  {p1[0]:.3f} {p1[1]:.3f} {p1[2]:.3f}")
-    print(f"P15 (thumb base): {p15[0]:.3f} {p15[1]:.3f} {p15[2]:.3f}")
-    print(f"thumb length (xy): {length:.2f} mm   "
-          f"[P1={bundle['P1_method']}, P15={bundle['P15_method']}, bias={bundle['length_bias_mm']:+.2f}]")
+    name = os.path.splitext(os.path.basename(args.obj))[0]
     out_dir = os.path.join(HERE, "predictions")
     os.makedirs(out_dir, exist_ok=True)
-    name = os.path.splitext(os.path.basename(args.obj))[0]
-    out = os.path.join(out_dir, f"{name}_pred_landmarks.ply")
-    write_ply(out, [p1, p15], [(255, 40, 40), (40, 80, 255)])
+    if args.mode == "learned":
+        p1, p15, length = predict_file(args.obj, bundle)
+        print(f"P1  (thumb tip):  {p1[0]:.3f} {p1[1]:.3f} {p1[2]:.3f}")
+        print(f"P15 (thumb base): {p15[0]:.3f} {p15[1]:.3f} {p15[2]:.3f}")
+        print(f"thumb length (xy): {length:.2f} mm   "
+              f"[P1={bundle['P1_method']}, P15={bundle['P15_method']}, bias={bundle['length_bias_mm']:+.2f}]")
+        out = os.path.join(out_dir, f"{name}_pred_landmarks.ply")
+        write_ply(out, [p1, p15], [(255, 40, 40), (40, 80, 255)])
+    else:
+        from final_pipeline import predict_hand
+        from align_landmarks import read_obj
+        V, F, _ = read_obj(args.obj)
+        res = predict_hand(V, F, bundle, p1_source=args.p1, axis=args.axis, method=args.method, params=cfg_params)
+        p1, p15, parts = res["P1"], res["P15"], res["parts"]
+        print(f"P1  (thumb tip):  {p1[0]:.3f} {p1[1]:.3f} {p1[2]:.3f}   [{args.p1}]")
+        print(f"P15 (thumb base): {p15[0]:.3f} {p15[1]:.3f} {p15[2]:.3f}   [axis={args.axis}, method={args.method}]")
+        print(f"thumb length (xy): {res['length_mm']:.2f} mm")
+        print(f"  rule P15 along-axis t={parts['t_rule']:.1f} (P20 foot t={parts['t_foot']:.1f}), learned P15 t={parts['t_learned']:.1f}")
+        out = os.path.join(out_dir, f"{name}_pred_combined.ply")
+        write_ply(out, [p1, p15, parts["P20"], parts["P15_rule"], parts["P15_learned"]],
+                  [(255, 40, 40), (40, 255, 40), (0, 229, 255), (42, 120, 214), (235, 104, 52)])
+        print("  PLY colours: P1 red, P15 green, P20' cyan, rule P15 blue, learned P15 orange")
     print(f"wrote {out}")
 
 
