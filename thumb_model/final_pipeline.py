@@ -131,6 +131,9 @@ def combine(t_learned, t_rule, t_foot, w20, method, params):
     raise ValueError(method)
 
 
+GATE_X_FIXED = None   # set by --gate-x: use this threshold instead of the nested-LOO choice
+
+
 def fit_params(method, rows):
     """rows: list of (t_learned, t_rule, t_foot, w20, t_true) from the training folds."""
     A = np.array(rows)
@@ -139,6 +142,8 @@ def fit_params(method, rows):
         errs = [np.abs(w * A[:, 0] + (1 - w) * A[:, 1] - A[:, 4]).mean() for w in ws]
         return {"w": float(ws[int(np.argmin(errs))])}
     if method == "gate":
+        if GATE_X_FIXED is not None:
+            return {"x": float(GATE_X_FIXED)}
         xs = np.arange(0.5, 8.01, 0.5)
         errs = [np.abs(np.where(np.abs(A[:, 0] - A[:, 1]) <= x, A[:, 0], A[:, 1]) - A[:, 4]).mean() for x in xs]
         return {"x": float(xs[int(np.argmin(errs))])}
@@ -257,9 +262,12 @@ def evaluate():
     key = (best["p1_source"], best["axis"])
     full = [(table[(n, *key)]["t_learned"], table[(n, *key)]["t_rule"], table[(n, *key)]["t_foot"], table[(n, *key)]["w20"], table[(n, *key)]["t_true"]) for n in names]
     params = {k: (v.tolist() if hasattr(v, "tolist") else v) for k, v in fit_params(best["method"], full).items()}
+    note = "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise"
+    if GATE_X_FIXED is not None and best["method"] == "gate":
+        note += f"; gate threshold fixed manually at {GATE_X_FIXED} mm (nested LOO picked 1.5; MAE is flat 0.75-2.0 mm)"
     config = {"p1_source": best["p1_source"], "axis": best["axis"], "method": best["method"], "params": params,
               "loo_15_hands": {k: (float(v) if isinstance(v, (float, np.floating)) else int(v)) for k, v in best.items() if k not in ("p1_source", "axis", "method")},
-              "note": "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise"}
+              "note": note}
     with open(os.path.join(HERE, "final_config.json"), "w", encoding="utf-8") as fh:
         json.dump(config, fh, ensure_ascii=False, indent=2)
     print(f"\nsaved final_config.json: {config}")
@@ -299,7 +307,10 @@ def length_figure(rows, names, best):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval", action="store_true")
+    ap.add_argument("--gate-x", type=float, default=None, help="fix the gate threshold (mm) instead of choosing it by nested LOO")
     args = ap.parse_args()
+    if args.gate_x is not None:
+        GATE_X_FIXED = args.gate_x
     if args.eval:
         evaluate()
     else:

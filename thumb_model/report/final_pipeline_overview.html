@@ -61,7 +61,7 @@ dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
   <p class="lead">손 3D 메쉬(obj) 하나만 넣으면 <strong>P1(엄지 끝)</strong>과 <strong>P15(엄지 밑 기준점)</strong>을 찍고, 두 점의 xy 평면 거리 = <strong>엄지 길이</strong>를 내는 알고리즘입니다. 따로 만들었던 두 재료 — 학습 모델과 기하 규칙 — 를 하나로 묶었습니다. 실행: <code>python thumb_model/predict.py hand.obj --mode combined</code></p>
 
   <div class="callout">
-    <p><strong>결과 (15명, 각자 처음 보는 손으로 평가).</strong> 엄지 길이 평균 오차 <strong>1.63mm</strong>(최대 4.6), 1mm 이내 5명, 2mm 이내 12명, 0.5mm 이내 1명. 학습 모델만 쓸 때(1.95mm)보다 나아졌지만 목표 0.5mm에는 미달입니다. 두 재료의 P15 오차가 사람별로 같은 방향으로 틀리기 때문(상관 0.73)에 결합의 이득이 제한적입니다.</p>
+    <p><strong>결과 (15명, 각자 처음 보는 손으로 평가).</strong> 엄지 길이 평균 오차 <strong>1.68mm</strong>(최대 4.6), 0.5mm 이내 3명, 1mm 이내 4명, 2mm 이내 11명. 학습 모델만 쓸 때(1.95mm)보다 나아졌지만 목표 0.5mm에는 미달입니다. 두 재료의 P15 오차가 사람별로 같은 방향으로 틀리기 때문(상관 0.73)에 결합의 이득이 제한적입니다.</p>
   </div>
 
   <h2>1. 무엇을 찾는가</h2>
@@ -89,7 +89,7 @@ dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
     <div class="step"><div class="num">4</div><div><h3>엄지 축 정하기 <span class="tag both">both</span></h3><p>P1을 지나는 직선이 필요합니다. 후보 네 가지(P1 → 학습 P15 직선 / 중심선과 평행 / 중심선 위 P20 발로 / 중심선 자체)를 15명 검증으로 비교한 결과 <strong>P1 → 학습 모델의 P15 직선</strong>이 SW 축과 0.2 ± 1.3°로 가장 가까웠습니다(중심선은 5 ± 3°). 학습 모델이 P15의 옆 방향 위치를 잘 잡는다는 뜻입니다.</p></div></div>
     <div class="step"><div class="num">5</div><div><h3>밑면 컨투어와 규칙 P15 <span class="tag rule">rule</span></h3><p>축을 따라 1mm마다 축 주변 ±12mm 안 점들 중 가장 낮은 z를 이어 "손바닥 밑면이 얼마나 떠 있나" 곡선을 만듭니다. P20을 축에 수직으로 내린 자리 ±1.1mm(각도로 85~95°) 안에서 이 곡선이 가장 높은 점 = 규칙 P15.</p></div></div>
     <div class="step"><div class="num">6</div><div><h3>학습 P15 <span class="tag learned">learned</span></h3><p>저장된 모델(model_hgb.pkl)로 coarse → fine → atlas 순서로 P15를 예측합니다.</p></div></div>
-    <div class="step"><div class="num">7</div><div><h3>두 P15를 하나로 <span class="tag both">both</span></h3><p>후보 방식(학습만 / 규칙만 / 가중 평균 / 게이트 / 선형 결합)을 15명 검증으로 비교해 <strong>게이트</strong>를 채택했습니다: 축 위에서 학습 P15와 규칙 P15가 1.5mm 이내면 학습 값을, 더 벌어지면 규칙 값을 씁니다. 규칙만 쓴 경우(1.75mm)와의 차이는 우연 범위이며, 매개변수가 없는 규칙만 쓰는 것도 합리적인 선택입니다.</p></div></div>
+    <div class="step"><div class="num">7</div><div><h3>두 P15를 하나로 <span class="tag both">both</span></h3><p>후보 방식(학습만 / 규칙만 / 가중 평균 / 게이트 / 선형 결합)을 15명 검증으로 비교해 <strong>게이트</strong>를 채택했습니다: 축 위에서 학습 P15와 규칙 P15가 1.0mm 이내면 학습 값을, 더 벌어지면 규칙 값을 씁니다(문턱은 0.75~2mm에서 결과가 거의 같아 해석이 자연스러운 1.0mm로 고정). 규칙만 쓴 경우(1.75mm)와의 차이는 우연 범위이며, 매개변수가 없는 규칙만 쓰는 것도 합리적인 선택입니다.</p></div></div>
     <div class="step"><div class="num">8</div><div><h3>엄지 길이 출력</h3><p>길이 = P1과 P15의 xy 거리. 좌표(obj 좌표계), 길이, 확인용 PLY 파일을 냅니다. <code>predict.py --mode combined</code>로 호출.</p></div></div>
   </div>
 
@@ -100,9 +100,9 @@ dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
     <tbody>
       <tr><td>P1 xy 오차</td><td class="n">약 2mm (학습 apex)</td><td class="n">1.11mm (중점 규칙)</td></tr>
       <tr><td>엄지 축 각도 오차</td><td class="n">—</td><td class="n">0.2 ± 1.3°</td></tr>
-      <tr><td>P15 축 방향 편차 (sd)</td><td class="n">2.34mm</td><td class="n">1.66mm</td></tr>
-      <tr><td>엄지 길이 평균 오차 (15명)</td><td class="n">1.95mm</td><td class="n"><strong>1.63mm</strong> (최대 4.6)</td></tr>
-      <tr><td>0.5 / 1 / 2mm 이내 인원</td><td class="n">2 / 6 / 9</td><td class="n">1 / 5 / 12</td></tr>
+      <tr><td>P15 축 방향 편차 (sd)</td><td class="n">2.34mm</td><td class="n">1.84mm</td></tr>
+      <tr><td>엄지 길이 평균 오차 (15명)</td><td class="n">1.95mm</td><td class="n"><strong>1.68mm</strong> (최대 4.6)</td></tr>
+      <tr><td>0.5 / 1 / 2mm 이내 인원</td><td class="n">2 / 6 / 9</td><td class="n">3 / 4 / 11</td></tr>
     </tbody>
   </table></div>
   <figure><img src="final_length_errors.png" alt="15명 사람별 엄지 길이 오차: 학습만, 규칙만, 채택한 게이트"><figcaption>사람별 엄지 길이 오차. 주황 = 학습 P15만, 파랑 = 규칙 P15만, 검정 = 채택(게이트). 1113·1116은 어떤 방식으로도 −3~−5mm가 남습니다.</figcaption></figure>

@@ -30,7 +30,7 @@ python thumb_model/train_eval.py --stage1 mlp   # MLP 비교 (약 90분, 결과 
 python thumb_model/predict.py obj/20_F_0179G.obj   # 추론(학습 모델만): P1·P15 좌표 + 길이, thumb_model/predictions/*.ply
 python thumb_model/predict.py obj/20_F_0179G.obj --mode combined   # 최종 파이프라인(학습 + 규칙, final_config.json 기본값)
 python thumb_model/train_eval.py --loo-all          # 15명 LOO 예측 저장(cv_preds_hgb_all15.npz, 약 15분) — final_pipeline --eval의 입력
-python thumb_model/final_pipeline.py --eval         # 최종 파이프라인 40개 구성 15명 held-out 평가 → final_eval*.csv, final_config.json (약 4분)
+python thumb_model/final_pipeline.py --eval --gate-x 1.0   # 최종 파이프라인 40개 구성 15명 held-out 평가 → final_eval*.csv, final_config.json (약 4분)
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)
 python thumb_model/eval_all_landmarks.py            # 28점 전체 오차, 학습 모델·기준선 15-fold LOO (약 45분)
 python thumb_model/landmark_report.py               # 접근별 28점 오차 보고서 → thumb_model/report/ (그림 4개, HTML, 요약 CSV)
@@ -39,7 +39,7 @@ python thumb_model/landmark_report.py               # 접근별 28점 오차 보
 접근별 28점 오차 비교 자료(팀 공유용): `thumb_model/report/landmark_report.html` — 28점 평균 3D 오차 규칙 3.40 / 학습 2.75 / 기준선 6.34mm. 상세는 `align2_and_modeling_readme.md`의 "접근별 전체 랜드마크 오차" 절.
 
 ## 4. 현재 상태 (2026-09-24 기준)
-**최종 판정: 정답 P15를 0.5mm 수준으로 재현하는 방법은 찾지 못했습니다.** 학습 모델과 기하 규칙을 결합한 최종 파이프라인(`predict.py --mode combined`)이 15명 held-out 엄지 길이 **MAE 1.63mm**(P15 축 방향 sd 1.66)로 현재 최선이며, 0.5mm 이내는 1/15입니다. 접근별 수치 표는 `align2_and_modeling_readme.md`의 "최종 판정"·"최종 파이프라인" 절.
+**최종 판정: 정답 P15를 0.5mm 수준으로 재현하는 방법은 찾지 못했습니다.** 학습 모델과 기하 규칙을 결합한 최종 파이프라인(`predict.py --mode combined`)이 15명 held-out 엄지 길이 **MAE 1.68mm**(gate 1.0mm; P15 축 방향 sd 1.84)로 현재 최선이며, 0.5mm 이내는 3/15입니다. 접근별 수치 표는 `align2_and_modeling_readme.md`의 "최종 판정"·"최종 파이프라인" 절.
 
 | 항목 | 상태 |
 |---|---|
@@ -49,7 +49,7 @@ python thumb_model/landmark_report.py               # 접근별 28점 오차 보
 | P15(엄지 기저) 재현 | **미해결.** 형상만으로 약 2mm가 한계 |
 | 엄지 길이 예측 | 15명 held-out MAE **2.10mm** (목표 0.5mm 미달) |
 | 특허 규칙 기반 재현 (hy1) | SW는 특허 KR 10-1217207 계열로 확인(구조 일치). 기저점 규칙은 문구와 달라 P15 ±2.4mm에서 멈춤. `thumb_model/rule_pipeline.py` |
-| **최종 파이프라인 (hy1)** | 메쉬만 입력. P1 = 중심선 apex·y최대점 중점(1.1mm), 축 = P1→학습 P15(0.2±1.3°), P15 = 학습/규칙 gate. 15명 held-out 길이 MAE **1.63mm**. `thumb_model/final_pipeline.py`, `predict.py --mode combined` |
+| **최종 파이프라인 (hy1)** | 메쉬만 입력. P1 = 중심선 apex·y최대점 중점(1.1mm), 축 = P1→학습 P15(0.2±1.3°), P15 = 학습/규칙 gate(1.0mm). 15명 held-out 길이 MAE **1.68mm**. `thumb_model/final_pipeline.py`, `predict.py --mode combined` |
 
 ## 5. 반드시 알아야 할 판단과 교훈
 1. **정합은 z축 회전 + xyz 이동만 허용.** 두 데이터 모두 바닥이 z=0이고, 이렇게 해야 xy 길이(엄지 길이)가 보존됩니다. 3D 회전을 허용하면 길이가 최대 0.64mm 왜곡됩니다.

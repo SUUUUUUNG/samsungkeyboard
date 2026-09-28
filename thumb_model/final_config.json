@@ -3,19 +3,19 @@
   "axis": "learned",
   "method": "gate",
   "params": {
-    "x": 1.5
+    "x": 1.0
   },
   "loo_15_hands": {
-    "len_mae": 1.6297674328250074,
+    "len_mae": 1.6770348894018023,
     "len_max": 4.61515335503924,
-    "n05": 1,
-    "n1": 5,
-    "n2": 12,
-    "p15_sd": 1.6647833578057374,
-    "p15_bias": -0.5896922047029548,
+    "n05": 3,
+    "n1": 4,
+    "n2": 11,
+    "p15_sd": 1.8391714634376846,
+    "p15_bias": -0.39626122098903144,
     "p1_mae": 1.1146775935924265,
     "ang_mean": 0.18697077462915127,
     "ang_sd": 1.3345130345936287
   },
-  "note": "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise"
+  "note": "chosen by 15-hand held-out length MAE among 40 configurations; differences of ~0.2 mm are within noise; gate threshold fixed manually at 1.0 mm (nested LOO picked 1.5; MAE is flat 0.75-2.0 mm)"
 }
