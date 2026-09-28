@@ -34,6 +34,7 @@ python thumb_model/predict.py obj/20_F_0179G.obj --mode simple     # 최단순 �
 python thumb_model/train_eval.py --loo-all          # 15명 LOO 예측 저장(cv_preds_hgb_all15.npz, 약 15분) — final_pipeline --eval의 입력
 python thumb_model/final_pipeline.py --eval --gate-x 1.0   # 결합·규칙 전용·최단순 225개 구성 15명 held-out 평가 → final_eval*.csv, final_config*.json (약 10분)
 python thumb_model/simple_explainer.py              # 최단순 축 그림 세트(사람별 15장 + 설명 3장) → thumb_model/report/simple/
+python thumb_model/section_views.py                 # t 규칙 후보(단면 형상) 점검 + 단면 스택 그림 2장 → thumb_model/report/t_rule_sections/
 python thumb_model/rule_only_explainer.py           # 규칙 전용 3단계 그림 (report/rule_only_explainer.png); axis_explainer.py는 축·B 만드는 순서 그림
 python thumb_model/contact_patch_views.py           # 엄지 접촉 패치(바닥 1mm 이내 점) 그림 15장 + P6 후보 수치 → thumb_model/report/contact_patch/
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)
@@ -57,6 +58,7 @@ python thumb_model/landmark_report.py               # 접근별 28점 오차 보
 | **최종 파이프라인 (hy1)** | 메쉬만 입력. P1 = 중심선 apex·y최대점 중점(1.1mm), 축 = P1→학습 P15(0.2±1.3°), P15 = 학습/규칙 gate(1.0mm). 15명 held-out 길이 MAE **1.68mm**. `thumb_model/final_pipeline.py`, `predict.py --mode combined` |
 | **규칙 전용 파이프라인 (hy1, 학습 없음)** | P1 = y최대점 1mm 띠의 엄지 바깥쪽 끝점(1.4mm), 축 = P1→B(P20′ 높이 2cm 위 엄지 폭 중앙점, 특허 손가락 축 규칙, 맞춘 상수 없음), P15 = P20 발 85~95° 창 컨투어 최고점. 15명 held-out 길이 MAE **1.71mm**(4/7/10). 외곽선 엄지 끝점은 축 계산에 쓰지 않음. `predict.py --mode rule`, `final_config_rule.json` |
 | **최단순 축 (hy1, 학습 없음)** | 규칙 전용에서 축만 "띠 P1→P20′ 선을 14.6° 회전"으로 바꾼 판(SW 정답에서 이 각도가 14.6 ± 1.1°로 일정). 15명 held-out MAE **1.70mm**(3/6/9), 축 오차 1.4 ± 1.2°. SW 정답 축을 써도 1.83이라 **축은 병목이 아님**. `predict.py --mode simple`, `final_config_simple.json`, `report/simple_pipeline_overview.html` |
+| P15 축 방향 위치 t 규칙 | **P20′ 발 ± 창(정답 입력 +0.3 ± 2.1)이 최선, 그 이상 없음.** 축은 병목이 아님(SW 정답 축을 써도 1.83). 폭·등쪽 높이·두께·단면적·단면 형상·컨투어 극점·접촉 패치·P6·랜드마크 구성 7만 개 모두 ±2.4 이상. 메쉬만으로는 종료, 다음은 공급사 정의 확인·텍스처·표본 확대. `thumb_model/section_views.py`, `report/simple_pipeline_overview.html` 3-1절 |
 | P6(엄지 첫마디) 규칙 | **실패.** 들림 시작·곡률·접촉 패치(바닥 1mm 이내 면) 등 어떤 정의도 ±2.5mm. lnd에서 P6는 P1–P15 직선 위(옆 편차 sd 0.3mm), t6/t15 = 0.49 ± 0.03이라 P15에 대한 독립 정보가 없음. `thumb_model/contact_patch_views.py` |
 
 ## 5. 반드시 알아야 할 판단과 교훈
