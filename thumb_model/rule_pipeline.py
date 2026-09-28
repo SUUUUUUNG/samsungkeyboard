@@ -189,15 +189,16 @@ def finger_base(S, tip, web, bisector):
     return np.array([base_xy[0], base_xy[1], palm_z(S, base_xy)])
 
 
-def thumb_medial_axis(S, outline, i_tip, i_web, stations=(6.0, 10.0, 14.0, 18.0, 22.0, 26.0), outer_after_tip=False):
+def thumb_medial_axis(S, outline, i_tip, i_web, stations=(6.0, 10.0, 14.0, 18.0, 22.0, 26.0), outer_after_tip=False, tip_override=None):
     """Medial axis of an outer digit (thumb, or little finger with
     outer_after_tip=True) between the tip and the web level. The radial sweep
     only shows the digit's inner edge near the tip (further down the rays reach
     the neighbouring finger), so the edges are read from the surface samples
     station by station: midpoint of the lateral extent within +/-15 mm of a
-    preliminary axis. Returns (unit direction base->tip, point on the axis)."""
+    preliminary axis. Returns (unit direction base->tip, point on the axis).
+    tip_override: use this xy (work frame) as the tip instead of the outline point."""
     P = outline["pts"][:, :2]
-    tip = P[i_tip]
+    tip = P[i_tip] if tip_override is None else np.asarray(tip_override, float)[:2]
     web = P[i_web]
     radial = P[i_tip + 1:] if outer_after_tip else P[:i_tip]   # the digit's outer (free) edge
     if len(radial) < 5:

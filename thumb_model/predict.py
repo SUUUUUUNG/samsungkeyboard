@@ -72,7 +72,7 @@ def main():
         from align_landmarks import read_obj
         cfg_path = os.path.join(HERE, "final_config.json" if args.mode == "combined" else "final_config_rule.json")
         cfg = json.load(open(cfg_path, encoding="utf-8")) if os.path.exists(cfg_path) else {}
-        defaults = {"combined": ("rule_midpoint", "learned", "rule"), "rule": ("rule_band1", "midline_foot", "rule")}[args.mode]
+        defaults = {"combined": ("rule_midpoint", "learned", "rule"), "rule": ("rule_band1", "p1_to_B", "rule")}[args.mode]
         args.p1 = args.p1 or cfg.get("p1_source", defaults[0])
         args.axis = args.axis or cfg.get("axis", defaults[1])
         args.method = args.method or cfg.get("method", defaults[2])

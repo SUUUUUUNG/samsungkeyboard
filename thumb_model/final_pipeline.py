@@ -2,8 +2,10 @@
 
 Two families share this code:
   combined   learned model (train_eval.py) + geometric rule; adopted setting in final_config.json
-  rule-only  no learning at all: P1 band rule, axis P1 -> midline station, P20 foot window;
-             adopted setting in final_config_rule.json
+  rule-only  no learning at all: P1 band rule, axis P1 -> B (thumb-width midpoint 2 cm distal
+             of the P20 level, patent finger-axis rule, built with the band P1 as the tip so the
+             silhouette tip point is not used), P20 foot window; adopted setting in
+             final_config_rule.json. (midline_station = earlier variant with a nested-LOO station.)
 
   python thumb_model/final_pipeline.py --eval [--gate-x 1.0]
         15-hand held-out evaluation of every P1 / axis / combination variant
@@ -39,12 +41,12 @@ TIP_RADIUS = 25.0            # thumb-tip region used for the apex / max-y search
 BAND_Y = 1.0                 # P1 band rule: points within this y distance (hand frame) of the max-y point
 STATIONS = (15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 55.0)   # midline station candidates (mm proximal of P1's projection)
 STATION_AXES = tuple(f"midline_t{int(t)}" for t in STATIONS)
-BASE_AXES = ("learned", "midline_parallel", "midline_foot", "midline")
+BASE_AXES = ("learned", "midline_parallel", "midline_foot", "midline", "p1_to_B")
 AXES = BASE_AXES + ("midline_station",)   # midline_station: station chosen by nested LOO (eval) / params["t_station"] (predict)
 P1_SOURCES = ("rule_midpoint", "rule_band1", "learned_apex")
 COMBOS = ("learned", "rule", "average", "gate", "stack")
-COMBINED_FAMILY = dict(p1=("rule_midpoint", "learned_apex"), axes=BASE_AXES, methods=COMBOS)   # what final_config.json is chosen from (unchanged)
-RULE_ONLY_FAMILY = dict(p1=("rule_midpoint", "rule_band1"), axes=("midline_parallel", "midline_foot", "midline", "midline_station"), methods=("rule",))
+COMBINED_FAMILY = dict(p1=("rule_midpoint", "learned_apex"), axes=BASE_AXES[:4], methods=COMBOS)   # what final_config.json is chosen from (unchanged)
+RULE_ONLY_FAMILY = dict(p1=("rule_midpoint", "rule_band1"), axes=("p1_to_B", "midline_parallel", "midline_foot", "midline", "midline_station"), methods=("rule",))
 
 
 def unit(v):
@@ -65,8 +67,31 @@ def rule_parts(V, F, seed=0):
     p1_rule = 0.5 * (apex + maxy)
     top = work[work[:, 1] > work[:, 1].max() - BAND_Y]       # band rule: within 1 mm (y) of the max-y point, outermost on the thumb side
     p1_band1 = r["frame"].from_work(top[np.argmax(top[:, 0])]).reshape(3)
+    B = thumb_B(S, r, p1_band1)                              # width midpoint 2 cm distal of the P20 level, built with the band P1 as the tip
     return {"S": S, "P20": r["P20"], "tip_outline": r["P1"], "apex": apex, "maxy": maxy, "P1_rule": p1_rule, "P1_band1": p1_band1,
-            "d_mid": d_mid, "P15_B": r["P15_B"], "P15_rule_B": r["P15"], "frame": r["frame"]}
+            "B": B, "d_mid": d_mid, "P15_B": r["P15_B"], "P15_rule_B": r["P15"], "frame": r["frame"]}
+
+
+def thumb_B(S, r, tip, return_parts=False):
+    """B for the rule-only axis (obj frame): the patent's finger-axis point (thumb-width
+    midpoint AXIS_STATION_MM = 2 cm distal of the P20 level) built from `tip` (obj frame)
+    instead of the silhouette tip. The silhouette is still used for P20 and for the
+    thumb's outer edge; the outline tip itself is not used."""
+    fr, outl = r["frame"], r["outline"]
+    Sw = fr.to_work(S)
+    tips = rp.fingertips(outl)
+    webs = [rp.web_between(outl, tips[i], tips[i + 1]) for i in range(4)]
+    tip_w = fr.to_work(tip)[0][:2]
+    d, ctr = rp.thumb_medial_axis(Sw, outl, tips[0], webs[0], tip_override=tip_w)
+    web_w = outl["pts"][webs[0], :2]
+    web_t = (web_w - tip_w) @ (-d)
+    b = rp.width_bisector_along(Sw, tip_w, -d, web_t - rp.AXIS_STATION_MM, half_width=15.0)
+    if b is None:                                             # degenerate slab: fall back to the run()'s own B
+        b = fr.to_work(r["P15_B"])[0][:2]
+    B = fr.from_work(np.array([b[0], b[1], 0.0]))[0]
+    if return_parts:
+        return B, {"Sw": Sw, "outl": outl, "tips": tips, "webs": webs, "tip_w": tip_w, "d": d, "ctr": ctr, "web_w": web_w, "web_t": web_t, "b_w": b}
+    return B
 
 
 def p1_from_source(parts, learned, p1_source):
@@ -87,6 +112,8 @@ def axis_direction(parts, axis, p1, p15_learned=None, t_station=None):
         return -parts["d_mid"]
     if axis == "midline_foot":                                # P1 -> foot of P20 on the midline axis
         return unit(parts["P15_rule_B"][:2] - p1[:2])
+    if axis == "p1_to_B":                                     # P1 -> B: thumb-width midpoint 2 cm distal of the P20 level, built from the band P1 (patent finger-axis rule with P1 as the tip)
+        return unit(parts["B"][:2] - p1[:2])
     if axis.startswith("midline_t") or axis == "midline_station":   # P1 -> midline point t_s mm proximal of P1's projection
         t_s = float(axis[9:]) if axis.startswith("midline_t") else float(t_station)
         d, b = parts["d_mid"], parts["P15_B"][:2]
@@ -362,17 +389,20 @@ def evaluate():
     # rule-only family (no learning; station by nested LOO) -> final_config_rule.json
     best_r = next(s for s in summ if in_family(s, RULE_ONLY_FAMILY))
     per_hand(best_r)
-    save_config(best_r, os.path.join(HERE, "final_config_rule.json"),
-                "no learning: chosen by 15-hand held-out length MAE among the rule-only family (2 P1 x 4 axes); "
-                "t_station here is the station with the lowest 15-hand MAE (the held-out number used nested LOO per fold)")
-    ref_r = {"p1_source": "rule_midpoint", "axis": "midline_foot", "method": "rule"}
+    note_r = "no learning: chosen by 15-hand held-out length MAE among the rule-only family (2 P1 x 5 axes)"
+    if best_r["axis"] == "midline_station":
+        note_r += "; t_station here is the station with the lowest 15-hand MAE (the held-out number used nested LOO per fold)"
+    elif best_r["axis"] == "p1_to_B":
+        note_r += "; axis = band P1 -> B (thumb-width midpoint 2 cm distal of the P20 level: patent finger-axis rule, no fitted constant)"
+    save_config(best_r, os.path.join(HERE, "final_config_rule.json"), note_r)
+    ref_r = {"p1_source": "rule_band1", "axis": "midline_station", "method": "rule"}
     length_figure(rows, names, [(dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="learned"), "학습 P15만", "#eb6834"),
                                 (dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="rule"), "규칙 P15만", "#2a78d6"),
                                 (best_c, f"채택: {best_c['method']}", "#0b0b0b")],
                   f"메쉬만 입력, 15명 held-out  |  P1 = {best_c['p1_source']}, 축 = {best_c['axis']}", "final_length_errors.png")
     length_figure(rows, names, [(best_c, f"학습+규칙 채택 ({best_c['method']})", "#0b0b0b"),
-                                (ref_r, "규칙만: P1 중점, 축 P20 발", "#2a78d6"),
-                                (best_r, f"규칙만 최선: P1 {best_r['p1_source'][5:]}, 축 {best_r['axis']}", "#1a9850")],
+                                (ref_r, "규칙만 이전안: P1 띠, 축 중심선 20mm 지점(LOO)", "#2a78d6"),
+                                (best_r, f"규칙만 채택: P1 {best_r['p1_source'][5:]}, 축 {best_r['axis']}", "#1a9850")],
                   "학습 없는 규칙 전용 파이프라인 vs 채택된 결합 파이프라인 (15명 held-out)", "final_length_errors_rule_only.png")
 
 

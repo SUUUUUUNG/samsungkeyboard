@@ -1,21 +1,19 @@
 {
   "p1_source": "rule_band1",
-  "axis": "midline_station",
+  "axis": "p1_to_B",
   "method": "rule",
-  "params": {
-    "t_station": 20.0
-  },
+  "params": {},
   "loo_15_hands": {
-    "len_mae": 1.7399999999999987,
-    "len_max": 4.100000000000001,
-    "n05": 3,
-    "n1": 6,
+    "len_mae": 1.713333333333334,
+    "len_max": 4.1000000000000085,
+    "n05": 4,
+    "n1": 7,
     "n2": 10,
-    "p15_sd": 2.019112667911468,
-    "p15_bias": -0.40538631374270295,
+    "p15_sd": 2.05849237735283,
+    "p15_bias": -0.20934716327328193,
     "p1_mae": 1.4091039894871016,
-    "ang_mean": 0.6469249224480761,
-    "ang_sd": 2.575630920839257
+    "ang_mean": 1.9822369819528887,
+    "ang_sd": 2.3279922962536856
   },
-  "note": "no learning: chosen by 15-hand held-out length MAE among the rule-only family (2 P1 x 4 axes); t_station here is the station with the lowest 15-hand MAE (the held-out number used nested LOO per fold)"
+  "note": "no learning: chosen by 15-hand held-out length MAE among the rule-only family (2 P1 x 5 axes); axis = band P1 -> B (thumb-width midpoint 2 cm distal of the P20 level: patent finger-axis rule, no fitted constant)"
 }
