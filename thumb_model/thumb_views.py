@@ -89,6 +89,9 @@ def main():
         t15 = (P[15][:2] - P[1][:2]) @ u
         t6 = (P[6][:2] - P[1][:2]) @ u
         label = group_label(t15, tp, zp)
+        # the two extrema as 3D points: on the axis line in xy, at the contour height in z
+        peak3 = np.array([*(P[1][:2] + tp * u), zp])
+        cmin3 = np.array([*(P[1][:2] + tm * u), zm])
 
         fig, axes = plt.subplots(1, 3, figsize=(20, 6.6))
         views = [("XY (top)", 0, 1, "X", "Y"), ("YZ (side)", 1, 2, "Y", "Z"), ("ZX (front)", 2, 0, "Z", "X")]
@@ -98,6 +101,10 @@ def main():
                 ax.scatter(P[k][a], P[k][b], s=110, color=col, edgecolor="k", zorder=4, label=f"P{k}")
                 ax.annotate(str(k), (P[k][a], P[k][b]), xytext=(6, 5), textcoords="offset points",
                             fontsize=10, fontweight="bold", zorder=5)
+            ax.scatter(peak3[a], peak3[b], marker="^", s=80, color="k", zorder=6,
+                       label=f"▲ 들림 봉우리 꼭대기 (t={tp:.0f}, P15 t={t15:.1f})")
+            ax.scatter(cmin3[a], cmin3[b], marker="v", s=80, color="k", zorder=6,
+                       label=f"▼ 접촉 최저점 (t={tm:.0f}, P6 t={t6:.1f})")
             ax.set_title(title)
             ax.set_xlabel(la)
             ax.set_ylabel(lb)
@@ -107,11 +114,7 @@ def main():
         ok = ~np.isnan(zs)
         ax.plot(P[1][1] + ts[ok] * u[1], zs[ok], color="#333333", lw=1.2, zorder=3,
                 label=f"엄지 축 띠(±{BAND:.0f}mm) 하단 컨투어")
-        ax.scatter([P[1][1] + tp * u[1]], [zp], marker="^", s=80, color="k", zorder=6,
-                   label=f"▲ 들림 봉우리 꼭대기 (t={tp:.0f}, P15 t={t15:.1f})")
-        ax.scatter([P[1][1] + tm * u[1]], [zm], marker="v", s=80, color="k", zorder=6,
-                   label=f"▼ 접촉 최저점 (t={tm:.0f}, P6 t={t6:.1f})")
-        axes[0].legend(loc="upper left", fontsize=9)
+        axes[0].legend(loc="upper left", fontsize=8)
         axes[1].legend(loc="upper right", fontsize=8)
         fig.suptitle(f"{name}: thumb region (P1/P6/P15/P20 bbox + {MARGIN:.0f}mm)   |   P15 위치: {label}   "
                      f"|   P15 - ▲ = {t15 - tp:+.1f}mm,  P6 - ▼ = {t6 - tm:+.1f}mm", fontsize=12)
