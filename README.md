@@ -35,6 +35,7 @@ python thumb_model/train_eval.py --loo-all          # 15명 LOO 예측 저장(cv
 python thumb_model/final_pipeline.py --eval --gate-x 1.0   # 결합·규칙 전용·최단순 225개 구성 15명 held-out 평가 → final_eval*.csv, final_config*.json (약 10분)
 python thumb_model/simple_explainer.py              # 최단순 축 그림 세트(사람별 15장 + 설명 3장) → thumb_model/report/simple/
 python thumb_model/section_views.py                 # t 규칙 후보(단면 형상) 점검 + 단면 스택 그림 2장 → thumb_model/report/t_rule_sections/
+python thumb_model/contour_peak_eval.py             # 컨투어 봉우리 = P15 접근법의 길이 오차·비율 → report/contour_peak_eval.csv (보고서 report/contour_peak_report.html)
 python thumb_model/rule_only_explainer.py           # 규칙 전용 3단계 그림 (report/rule_only_explainer.png); axis_explainer.py는 축·B 만드는 순서 그림
 python thumb_model/contact_patch_views.py           # 엄지 접촉 패치(바닥 1mm 이내 점) 그림 15장 + P6 후보 수치 → thumb_model/report/contact_patch/
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>밑면 컨투어 극점 접근법 보고</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781; --grid:#e1e0d9; --ring:rgba(11,11,11,.10);
+  --band:#f0efec; --accent:#b45309; --accent-soft:#fbeede; --rule:#2a78d6;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#f59e0b; --accent-soft:#3a2a12; --rule:#3987e5;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#f59e0b; --accent-soft:#3a2a12; --rule:#3987e5;
+}
+body{margin:0;background:var(--page);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;font-size:15px;line-height:1.65}
+.wrap{max-width:960px;margin:0 auto;padding-block:32px 56px;padding-inline:20px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+h1{font-size:28px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:19px;font-weight:600;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--grid)}
+h3{font-size:15.5px;font-weight:600;margin:20px 0 6px}
+p{max-width:70ch;margin:8px 0;color:var(--ink-2)}
+p.lead{color:var(--ink);font-size:16.5px}
+strong{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,"Malgun Gothic",monospace;font-size:13px;background:var(--band);padding:1px 5px;border-radius:4px}
+.callout{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:4px 0;color:var(--ink)}
+.flow{display:flex;flex-direction:column;gap:0;margin:18px 0;max-width:760px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:14px 16px;background:var(--surface);border:1px solid var(--ring);border-radius:8px}
+.step + .step{margin-top:10px}
+.step .num{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--page);display:grid;place-items:center;font-weight:600;font-size:14px}
+.step h3{margin:2px 0 4px}
+.step p{margin:2px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;margin:10px 0}
+th{font-weight:500;color:var(--ink-2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--muted)}
+td{padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.hl td{background:var(--accent-soft)}
+tr.ref td{color:var(--muted)}
+.tbl{overflow-x:auto}
+figure{margin:14px 0;background:var(--surface);border:1px solid var(--ring);border-radius:8px;padding:10px}
+figure img{max-width:100%;display:block;border-radius:4px}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+ul{max-width:72ch;color:var(--ink-2);padding-left:22px}
+li{margin:4px 0}
+dl{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;max-width:76ch}
+dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
+.note{font-size:13px;color:var(--muted)}
+@media (max-width:640px){h1{font-size:23px}.wrap{padding-inline:16px}dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">samsungkeyboard · 브랜치 hy1 · 2026-09-28 · 가설 검토 보고 (기각)</div>
+  <h1>밑면 컨투어 극점 접근법: 엄지 길이 오차 보고</h1>
+  <p class="lead">엄지 축을 따라 손바닥 밑면이 유리에서 얼마나 떠 있는지를 곡선으로 만들고, 그 곡선의 <strong>접촉 최저점(▼)을 P6</strong>, <strong>들림 봉우리 꼭대기(▲)를 P15</strong>로 보는 접근법입니다(<code>report/thumb_views/</code>의 3평면 그림이 이 방식). 이 방식으로 엄지 길이를 재면 15명 중 몇 명이 목표 오차 안에 들어오는지 정리했습니다.</p>
+
+  <div class="callout">
+    <p><strong>결과.</strong> 봉우리 꼭대기를 P15로 쓰면 엄지 길이 평균 오차 <strong>4.3mm</strong>, 0.5mm 이내 <strong>13%</strong>(2/15), 1mm 이내 <strong>13~20%</strong>(2~3/15), 2mm 이내 <strong>33%</strong>(5/15)입니다. 정답 P1·정답 축을 넣어도 같습니다. 같은 입력에 채택된 창 규칙을 쓰면 1.70mm, 20 / 40 / 60%입니다. 봉우리는 P15가 있는 <em>구역</em>은 맞히지만 그 안의 위치가 사람마다 −2 ~ +11mm 다릅니다.</p>
+  </div>
+
+  <h2>1. 접근법</h2>
+  <div class="flow">
+    <div class="step"><div class="num">1</div><div><h3>엄지 축과 띠</h3><p>P1에서 P15 쪽으로 가는 직선을 축으로 잡고, 축 양옆 ±12mm 띠 안의 표면 점만 씁니다(가설 검정에서는 SW의 정답 P1·P15로 축을 그어 축 오차를 배제).</p></div></div>
+    <div class="step"><div class="num">2</div><div><h3>밑면 컨투어</h3><p>축을 따라 1mm 간격 지점(스테이션)마다 두께 1.5mm 판을 자르고, 판 안 점들 중 <strong>가장 낮은 z</strong>를 취해 이은 곡선. 앞뒤 2지점씩 평균해 평활합니다. 값이 0이면 유리에 닿은 것, 크면 떠 있는 것입니다.</p></div></div>
+    <div class="step"><div class="num">3</div><div><h3>극점 두 개</h3><p><strong>▼ 접촉 최저점</strong>: P1에서 5~40mm 구간의 최저점(엄지 첫마디 패드가 유리에 눌린 자리). <strong>▲ 들림 봉우리</strong>: 25~62mm 구간의 최고점(엄지 밑과 엄지두덩 사이에서 손바닥이 떠오른 자리).</p></div></div>
+    <div class="step"><div class="num">4</div><div><h3>가설</h3><p>P6 = ▼, P15 = ▲. 그러면 엄지 길이 = P1에서 ▲까지의 xy 거리.</p></div></div>
+  </div>
+  <figure><img src="thumb_views/_how_contour_is_built.png" alt="띠 하단 컨투어를 만드는 과정: 위에서 본 띠와 판, 축 방향으로 펼친 점과 최저 z 곡선"><figcaption>컨투어 만들기(손 0004, 띠 ±12mm). 왼쪽은 위에서 본 띠와 1mm 판, 오른쪽은 판마다의 최저 z를 이은 곡선. ▼ 접촉 최저점, ▲ 들림 봉우리.</figcaption></figure>
+  <figure><img src="thumb_views/20_F_0004G.png" alt="손 0004의 XY, YZ, ZX 세 평면과 컨투어 극점"><figcaption>가설이 맞는 손(0004): ▲가 정답 P15와 0.9mm, ▼가 P6와 1.6mm. 사람별 그림 15장은 <code>report/thumb_views/&lt;이름&gt;.png</code>.</figcaption></figure>
+  <figure><img src="thumb_views/20_F_0097G.png" alt="손 0097의 XY, YZ, ZX 세 평면과 컨투어 극점"><figcaption>가설이 어긋나는 손(0097): 정답 P15는 ▲보다 손목 쪽으로 7.8mm 내려간 비탈에 있고, P6도 ▼보다 6.2mm 손목 쪽. 이런 손이 15명 중 8명입니다.</figcaption></figure>
+
+  <h2>2. 평가한 변형</h2>
+  <p>길이는 모두 P1에서 축 위의 P15 후보까지의 xy 거리이고, 기준값은 SW의 P1–P15 거리입니다. 15명 모두 평가했으며, 데이터로 정한 값이 있는 변형(C의 각도 상수, D의 회귀 계수)은 해당 손을 빼고 정했습니다.</p>
+  <dl>
+    <dt>A</dt><dd>가설 검정판: SW의 정답 P1·정답 축을 그대로 쓰고 P15만 ▲로. thumb_views 그림과 같은 조건이며, 이 방식의 상한입니다.</dd>
+    <dt>B</dt><dd>원래 제안한 메쉬 전용 3단계 체인: P1 = 중심선 끝점(apex) → P6 = 엄지 최저 z점 → P1P6 축 → 그 축의 컨투어(띠 ±8mm) 봉우리 = P15.</dd>
+    <dt>C</dt><dd>메쉬 전용, 지금 최선의 입력: P1 = 띠 규칙, 축 = 최단순 축(P1→P20′ 선 14.6° 회전) → 컨투어(±12mm) 봉우리 = P15.</dd>
+    <dt>D</dt><dd>극점 간격 회귀: ▼–▲ xy 거리로 엄지 길이를 1차 회귀(LOO). "극점 간격이 길이와 비례한다"는 후속 가설.</dd>
+    <dt>E</dt><dd>참고: C와 같은 P1·축에 채택된 창 규칙(P20′ 발 85~95° 안 컨투어 최고점)을 쓴 값.</dd>
+  </dl>
+
+  <h2>3. 결과</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>변형</th><th class="n">길이 MAE</th><th class="n">최대</th><th class="n">편향 / sd</th><th class="n">≤0.5mm</th><th class="n">≤1mm</th><th class="n">≤2mm</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><strong>A</strong> 정답 P1·정답 축 + 봉우리</td><td class="n">4.26</td><td class="n">10.7</td><td class="n">−3.59 / 3.85</td><td class="n">2명 (13%)</td><td class="n">3명 (20%)</td><td class="n">5명 (33%)</td></tr>
+      <tr><td><strong>B</strong> 메쉬 체인 apex → P6 최저점 → 축 → 봉우리</td><td class="n">4.30</td><td class="n">8.7</td><td class="n">−2.73 / 4.17</td><td class="n">0명 (0%)</td><td class="n">0명 (0%)</td><td class="n">4명 (27%)</td></tr>
+      <tr><td><strong>C</strong> 띠 P1 + 최단순 축 + 봉우리</td><td class="n">4.26</td><td class="n">9.7</td><td class="n">−3.19 / 4.04</td><td class="n">2명 (13%)</td><td class="n">2명 (13%)</td><td class="n">5명 (33%)</td></tr>
+      <tr><td><strong>D</strong> 극점 간격 회귀 (LOO)</td><td class="n">3.25</td><td class="n">6.3</td><td class="n">−0.14 / 3.79</td><td class="n">1명 (7%)</td><td class="n">3명 (20%)</td><td class="n">6명 (40%)</td></tr>
+      <tr class="ref"><td><strong>E</strong> 참고: C와 같은 입력 + 채택 창 규칙</td><td class="n">1.70</td><td class="n">4.2</td><td class="n">+0.14 / 2.03</td><td class="n">3명 (20%)</td><td class="n">6명 (40%)</td><td class="n">9명 (60%)</td></tr>
+    </tbody>
+  </table></div>
+  <p>사람별 길이 오차(mm, 예측 − 기준값). 오른쪽 두 열은 정답 점이 극점에서 축 방향으로 얼마나 떨어져 있는지(+ = 손목 쪽)입니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>손</th><th class="n">A</th><th class="n">B</th><th class="n">C</th><th class="n">D</th><th class="n">E (참고)</th><th class="n">P15 − ▲</th><th class="n">P6 − ▼</th><th class="n">▲ 높이 z</th><th>P15의 위치</th></tr></thead>
+    <tbody>
+      <tr><td>F_0004</td><td class="n">+0.9</td><td class="n">+1.9</td><td class="n">+1.9</td><td class="n">+5.9</td><td class="n">+0.9</td><td class="n">−0.9</td><td class="n">+1.6</td><td class="n">3.3</td><td>꼭대기</td></tr>
+      <tr><td>F_0097</td><td class="n">−7.8</td><td class="n">−7.8</td><td class="n">−7.8</td><td class="n">−4.9</td><td class="n">+0.2</td><td class="n">+7.8</td><td class="n">+6.2</td><td class="n">3.7</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>F_0179</td><td class="n">+2.4</td><td class="n">+4.4</td><td class="n">+4.4</td><td class="n">+6.3</td><td class="n">+2.4</td><td class="n">−2.4</td><td class="n">+6.0</td><td class="n">3.9</td><td>꼭대기</td></tr>
+      <tr><td>F_2633</td><td class="n">−10.7</td><td class="n">−8.7</td><td class="n">−9.7</td><td class="n">−2.0</td><td class="n">−0.7</td><td class="n">+10.7</td><td class="n">+2.9</td><td class="n">1.7</td><td>봉우리 약함</td></tr>
+      <tr><td>F_2634</td><td class="n">−5.2</td><td class="n">−4.2</td><td class="n">−5.2</td><td class="n">−0.6</td><td class="n">+2.8</td><td class="n">+5.2</td><td class="n">+7.7</td><td class="n">2.1</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>F_2635</td><td class="n">+0.4</td><td class="n">+1.4</td><td class="n">+0.4</td><td class="n">+5.0</td><td class="n">+2.4</td><td class="n">−0.4</td><td class="n">+3.6</td><td class="n">2.5</td><td>꼭대기</td></tr>
+      <tr><td>F_2636</td><td class="n">−5.4</td><td class="n">−4.4</td><td class="n">−4.4</td><td class="n">+1.9</td><td class="n">−0.4</td><td class="n">+5.4</td><td class="n">+5.5</td><td class="n">3.2</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>F_2637</td><td class="n">−4.0</td><td class="n">−3.0</td><td class="n">−3.0</td><td class="n">−2.6</td><td class="n">+1.0</td><td class="n">+4.0</td><td class="n">+1.5</td><td class="n">1.8</td><td>봉우리 약함</td></tr>
+      <tr><td>M_1113</td><td class="n">−3.2</td><td class="n">−2.2</td><td class="n">−3.2</td><td class="n">+0.9</td><td class="n">−4.2</td><td class="n">+3.2</td><td class="n">+2.5</td><td class="n">3.6</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>M_1114</td><td class="n">−7.5</td><td class="n">−7.5</td><td class="n">−6.5</td><td class="n">−4.6</td><td class="n">−1.5</td><td class="n">+7.5</td><td class="n">+6.2</td><td class="n">2.6</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>M_1115</td><td class="n">−1.4</td><td class="n">−1.4</td><td class="n">−1.4</td><td class="n">0.0</td><td class="n">−1.4</td><td class="n">+1.4</td><td class="n">+2.7</td><td class="n">5.2</td><td>꼭대기</td></tr>
+      <tr><td>M_1116</td><td class="n">−6.1</td><td class="n">−6.1</td><td class="n">−6.1</td><td class="n">−3.9</td><td class="n">−3.1</td><td class="n">+6.1</td><td class="n">+9.7</td><td class="n">3.4</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>M_1117</td><td class="n">−7.4</td><td class="n">−7.4</td><td class="n">−8.4</td><td class="n">−1.8</td><td class="n">−0.4</td><td class="n">+7.4</td><td class="n">+3.3</td><td class="n">4.0</td><td>손목 쪽 비탈</td></tr>
+      <tr><td>M_1559</td><td class="n">+1.3</td><td class="n">+1.3</td><td class="n">+1.3</td><td class="n">−5.2</td><td class="n">+2.3</td><td class="n">−1.3</td><td class="n">+8.4</td><td class="n">2.9</td><td>꼭대기</td></tr>
+      <tr><td>M_1573</td><td class="n">−0.2</td><td class="n">+2.8</td><td class="n">−0.2</td><td class="n">+3.4</td><td class="n">+1.8</td><td class="n">+0.2</td><td class="n">+8.4</td><td class="n">3.2</td><td>꼭대기</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>4. 왜 안 되나</h2>
+  <ul>
+    <li><strong>P15는 봉우리 위에 있지만 어디인지가 사람마다 다릅니다.</strong> 정답 P15 − ▲ = +3.6 ± 3.9mm. 꼭대기(±2.5mm 이내)인 손이 6명(0004, 0179, 2635, 1115, 1559, 1573), 꼭대기에서 손목 쪽으로 3~8mm 내려간 비탈인 손이 8명(0097, 2634, 2636, 2637, 1113, 1114, 1116, 1117), 봉우리가 약한 손(높이 2mm 미만)이 2633·2637입니다. 봉우리의 높이·폭과 이 위치 차이 사이에 관계는 없었습니다.</li>
+    <li><strong>P6도 마찬가지입니다.</strong> 정답 P6 − ▼ = +5.1 ± 2.6mm. 접촉 구간(10~15mm)이 평평해 최저점이 어디 찍히느냐가 불안정하고, 정답 P6는 구간의 손목 쪽 끝 근처입니다.</li>
+    <li><strong>노이즈가 아니라 계통적입니다.</strong> 평활 폭(1~6mm), 띠 폭(6/8/12mm), 표면 점 50% 무작위 제거(8회), 2차 곡선 맞춤으로 극점을 흔들어도 봉우리는 평균 1.1mm(최대 3.0), 최저점은 0.8mm(최대 2.8)만 움직입니다. 같은 손이 항상 같은 방향으로 벗어납니다.</li>
+    <li><strong>극점 간격도 길이를 대신하지 못합니다.</strong> ▼–▲ 거리는 26.5 ± 5.0mm로 엄지 길이의 0.54 ± 0.09배, 상관 0.50. 회귀로 길이를 추정하면 MAE 3.3mm입니다. 이 거리는 뼈 길이가 아니라 손바닥이 눌린 방식을 반영하는 양입니다.</li>
+    <li>정답 P1·정답 축을 넣은 A와 메쉬 전용 C의 결과가 사실상 같다는 것은, 이 접근법의 한계가 P1이나 축이 아니라 "봉우리 = P15"라는 가정 자체에 있다는 뜻입니다.</li>
+  </ul>
+
+  <h2>5. 결론</h2>
+  <p>봉우리 꼭대기를 P15로 쓰는 방식은 0.5mm 이내 13%, 2mm 이내 33%로 <strong>기각</strong>입니다. 다만 이 컨투어 자체는 버려지지 않았습니다. 채택된 규칙은 같은 컨투어를 쓰되 "P20′의 수직 발 ±1.1mm 안에서 가장 높은 점"으로 범위를 좁힌 것이고, 그 결과가 같은 입력에서 1.70mm, 2mm 이내 60%입니다. 즉 컨투어는 P15의 <em>옆·높이</em>를 정하는 데 쓰이고, 축 방향 위치는 P20′이 정합니다.</p>
+
+  <h2>6. 용어 풀이</h2>
+  <dl>
+    <dt>스테이션</dt><dd>축을 따라 1mm 간격으로 놓은 지점. 각 지점에서 축에 수직인 두께 1.5mm 판을 잘라 봅니다.</dd>
+    <dt>띠</dt><dd>축 양옆 ±12mm 범위. 이 안의 점만 컨투어에 씁니다(가장자리 차선은 5~11mm 떠 있어 제외).</dd>
+    <dt>▼ 접촉 최저점</dt><dd>P1에서 5~40mm 구간 컨투어의 최저점. 엄지 패드가 유리에 눌린 자리.</dd>
+    <dt>▲ 들림 봉우리</dt><dd>P1에서 25~62mm 구간 컨투어의 최고점. 엄지 밑과 엄지두덩 사이에서 손바닥이 떠오른 자리.</dd>
+    <dt>LOO</dt><dd>한 명씩 빼고 나머지로 계수를 정한 뒤 뺀 사람을 평가하는 교차검증.</dd>
+  </dl>
+
+  <p class="note">관련 파일: thumb_model/thumb_views.py(컨투어·극점, 사람별 3평면 그림 → report/thumb_views/), thumb_model/contour_explainer.py(컨투어 만드는 과정 그림), thumb_model/contour_peak_eval.py(이 보고의 수치 → report/contour_peak_eval.csv), thumb_model/p15_foot_window_views.py(채택된 창 규칙). 상세 이력은 align2_and_modeling_readme.md "가설 검토: 손바닥면 들림 봉우리 = P15, 접촉 최저점 = P6" 절.</p>
+</div>
+</body>
+</html>
