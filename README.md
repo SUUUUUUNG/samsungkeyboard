@@ -30,8 +30,10 @@ python thumb_model/train_eval.py --stage1 mlp   # MLP 비교 (약 90분, 결과 
 python thumb_model/predict.py obj/20_F_0179G.obj   # 추론(학습 모델만): P1·P15 좌표 + 길이, thumb_model/predictions/*.ply
 python thumb_model/predict.py obj/20_F_0179G.obj --mode combined   # 최종 파이프라인(학습 + 규칙, final_config.json 기본값)
 python thumb_model/predict.py obj/20_F_0179G.obj --mode rule       # 규칙 전용(학습 없음, 모델 파일 불필요, final_config_rule.json)
+python thumb_model/predict.py obj/20_F_0179G.obj --mode simple     # 최단순 축(P1→P20′ 선 14.6° 회전, final_config_simple.json)
 python thumb_model/train_eval.py --loo-all          # 15명 LOO 예측 저장(cv_preds_hgb_all15.npz, 약 15분) — final_pipeline --eval의 입력
-python thumb_model/final_pipeline.py --eval --gate-x 1.0   # 결합·규칙 전용 210개 구성 15명 held-out 평가 → final_eval*.csv, final_config.json, final_config_rule.json (약 10분)
+python thumb_model/final_pipeline.py --eval --gate-x 1.0   # 결합·규칙 전용·최단순 225개 구성 15명 held-out 평가 → final_eval*.csv, final_config*.json (약 10분)
+python thumb_model/simple_explainer.py              # 최단순 축 그림 세트(사람별 15장 + 설명 3장) → thumb_model/report/simple/
 python thumb_model/rule_only_explainer.py           # 규칙 전용 3단계 그림 (report/rule_only_explainer.png); axis_explainer.py는 축·B 만드는 순서 그림
 python thumb_model/contact_patch_views.py           # 엄지 접촉 패치(바닥 1mm 이내 점) 그림 15장 + P6 후보 수치 → thumb_model/report/contact_patch/
 python thumb_model/rule_pipeline.py                 # 특허 규칙 파이프라인(학습 없음) → rule_eval.csv, rule_landmarks.csv (약 3분)
@@ -54,6 +56,7 @@ python thumb_model/landmark_report.py               # 접근별 28점 오차 보
 | 특허 규칙 기반 재현 (hy1) | SW는 특허 KR 10-1217207 계열로 확인(구조 일치). 기저점 규칙은 문구와 달라 P15 ±2.4mm에서 멈춤. `thumb_model/rule_pipeline.py` |
 | **최종 파이프라인 (hy1)** | 메쉬만 입력. P1 = 중심선 apex·y최대점 중점(1.1mm), 축 = P1→학습 P15(0.2±1.3°), P15 = 학습/규칙 gate(1.0mm). 15명 held-out 길이 MAE **1.68mm**. `thumb_model/final_pipeline.py`, `predict.py --mode combined` |
 | **규칙 전용 파이프라인 (hy1, 학습 없음)** | P1 = y최대점 1mm 띠의 엄지 바깥쪽 끝점(1.4mm), 축 = P1→B(P20′ 높이 2cm 위 엄지 폭 중앙점, 특허 손가락 축 규칙, 맞춘 상수 없음), P15 = P20 발 85~95° 창 컨투어 최고점. 15명 held-out 길이 MAE **1.71mm**(4/7/10). 외곽선 엄지 끝점은 축 계산에 쓰지 않음. `predict.py --mode rule`, `final_config_rule.json` |
+| **최단순 축 (hy1, 학습 없음)** | 규칙 전용에서 축만 "띠 P1→P20′ 선을 14.6° 회전"으로 바꾼 판(SW 정답에서 이 각도가 14.6 ± 1.1°로 일정). 15명 held-out MAE **1.70mm**(3/6/9), 축 오차 1.4 ± 1.2°. SW 정답 축을 써도 1.83이라 **축은 병목이 아님**. `predict.py --mode simple`, `final_config_simple.json`, `report/simple_pipeline_overview.html` |
 | P6(엄지 첫마디) 규칙 | **실패.** 들림 시작·곡률·접촉 패치(바닥 1mm 이내 면) 등 어떤 정의도 ±2.5mm. lnd에서 P6는 P1–P15 직선 위(옆 편차 sd 0.3mm), t6/t15 = 0.49 ± 0.03이라 P15에 대한 독립 정보가 없음. `thumb_model/contact_patch_views.py` |
 
 ## 5. 반드시 알아야 할 판단과 교훈

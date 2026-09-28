@@ -336,7 +336,7 @@ P15만이 아니라 28개 점 전체를 각 접근이 얼마나 재현하는지 
 - 회귀 방지: `train_eval.py`는 P1·P15만 학습(`LANDMARKS` 로컬 정의). `prep.LANDMARKS`를 19점으로 넓힌 뒤 `--loo-all`이 P2 atlas를 만들려다 실패했던 것을 고쳤습니다.
 
 ### 학습 없는 규칙 전용 파이프라인 (2026-09-28)
-학습 모델을 빼고 규칙만으로 P1·P15·길이를 내는 모드입니다. 실행: `python thumb_model/predict.py hand.obj --mode rule` (설정 `final_config_rule.json`, 모델 파일 불필요). 같은 `final_pipeline.py --eval`이 결합 계열과 함께 평가합니다(P1 3종 × 축 14종 × 결합 5종 = 210 구성, 약 10분).
+학습 모델을 빼고 규칙만으로 P1·P15·길이를 내는 모드입니다. 실행: `python thumb_model/predict.py hand.obj --mode rule` (설정 `final_config_rule.json`, 모델 파일 불필요). 같은 `final_pipeline.py --eval`이 결합 계열과 함께 평가합니다(P1 3종 × 축 15종 × 결합 5종 = 225 구성, 약 10분).
 
 | 단계 | 규칙 | 근거 |
 |---|---|---|
@@ -367,6 +367,26 @@ P15만이 아니라 28개 점 전체를 각 접근이 얼마나 재현하는지 
 - 새 P1 띠 규칙을 결합 계열에 넣으면(P1 띠 + 축 P1→학습 P15 + gate 1.0) **1.51**(최대 4.0, 4/7/10)로 210 구성 중 최선이 됩니다. 채택 구성(1.68)보다 0.17mm 낫지만 우연 범위이고, 최선을 고른 값이라 낙관 편향이 있습니다. 자동으로 기본값을 바꾸지 않았습니다(`final_config.json`은 기존 2 P1 × 4축 × 5결합 계열에서만 고름).
 - 어느 모드든 1113·1116(−3~−4mm)과 1559·1573(규칙 전용 +3.3, +3.8)은 남으며, 0.5mm 이내는 4/15입니다.
 
+### 최단순 축: P1→P20′ 선을 14.6° 회전 (2026-09-28)
+규칙 전용에서 엄지 축만 바꾼 판. 실행 `python thumb_model/predict.py hand.obj --mode simple` (설정 `final_config_simple.json`), 소개 `thumb_model/report/simple_pipeline_overview.html`, 그림 `report/simple/`(사람별 15장 + 각도 일관성·축·3단계 설명 3장, `simple_explainer.py`).
+
+근거: SW 정답 점에서 P1→P20 선과 P1→P15 축 사이 각도가 15명 모두 **14.6 ± 1.1°**(12.4~16.3)로 일정합니다(`final_pipeline.sw_axis_angle`). 그래서 축 = 띠 P1→P20′ 방향을 엄지 바깥쪽으로 14.6° 돌린 직선(`p20_rotated`). 재료는 P1, P20′, 상수 하나. 상수는 SW 출력에서 잰 값이라 평가는 매 폴드 나머지 14명의 평균(14.5~14.8°)으로 했습니다(nested LOO).
+
+| 축 정의 (P1 띠·P15 창 규칙 동일, 15명 held-out) | SW 축과 각도 | 길이 MAE | 최대 | ≤0.5/1/2mm | P15 축 방향 sd |
+|---|---|---|---|---|---|
+| **P1→P20′ 14.6° 회전 (`final_config_simple.json`)** | **+1.4 ± 1.2°** | **1.70** | 4.2 | 3/6/9 | 1.98 |
+| P1→B (규칙 전용 채택) | +2.0 ± 2.3° | 1.71 | 4.1 | 4/7/10 | 2.06 |
+| **상한: SW 정답 축 방향을 띠 P1에 적용** | 0 | **1.83** | 4.2 | 3/5/7 | 2.18 |
+| P1–P20′ 선에 수직인 판 하나(d/2 또는 d−20mm)로 폭 중앙점 | +4.3 ± 2.0° | 1.82~1.89 | 4.3 | 4/6/8 | 2.04 |
+| 엄지 점 PCA 주축 | +5.6 ± 1.6° | 2.23 | 4.8 | 1/4/8 | 2.47 |
+
+사람별 길이 오차(최단순 축): 0004 +0.9, 0097 +0.2, 0179 +2.4, 2633 −0.7, 2634 +2.8, 2635 +2.4, 2636 −0.4, 2637 +1.0, 1113 **−4.2**, 1114 −1.5, 1115 −1.4, 1116 **−3.1**, 1117 −0.4, 1559 +2.3, 1573 +1.8. 그림 `report/final_length_errors_simple.png`. 세 방식(결합·P1→B·최단순)의 사람별 오차 상관은 0.9.
+
+읽을 때 주의:
+- **축은 병목이 아닙니다.** SW의 정답 축을 그대로 써도 1.83이라, 어떤 축 정의도 길이를 더 좋게 만들지 못합니다. 축 각도 오차는 P15를 옆으로 밀 뿐이고 옆 오차는 길이에 2차항으로만 들어갑니다. 남는 오차는 P15의 축 방향 위치 t(창 규칙, 정답 입력으로도 +0.3 ± 2.1)입니다.
+- 세 파이프라인의 정확도(1.68 / 1.71 / 1.70)는 우연 범위. 최단순 축은 설명이 가장 쉽지만 상수 14.6°가 SW 출력에서 온 값이고, P1→B는 맞춘 상수가 없습니다. 기본값은 미정(사용자 결정).
+- 참고: 최단순 축 + 학습 P15 gate 1.0(P1 띠)은 **1.44**(최대 4.0, 5/7/10)로 225개 구성 중 최선이지만, 최선을 고른 값이라 낙관 편향이 있으며 자동 채택하지 않았습니다.
+
 ### 기준값의 성격
 주어진 기준값 "실제(mm)"는 SW의 P1–P15 xy 거리와 15명 모두 ±0.05mm 이내로 같습니다. 즉 **SW 출력값**이며, 캘리퍼 등 수기 실측값은 없습니다(사용자 확인). 따라서 이 작업의 목표는 SW 재현이고, SW 자체가 실제 손 치수 대비 얼마나 정확한지는 이 데이터로 알 수 없습니다.
 
@@ -388,7 +408,9 @@ python thumb_model/train_eval.py --loo-all        # 15명 전체 LOO
 python thumb_model/predict.py obj/20_F_0179G.obj  # 추론
 python thumb_model/predict.py obj/20_F_0179G.obj --mode combined   # 최종 파이프라인(학습 + 규칙, final_config.json)
 python thumb_model/predict.py obj/20_F_0179G.obj --mode rule       # 규칙 전용(학습 없음, final_config_rule.json)
-python thumb_model/final_pipeline.py --eval --gate-x 1.0           # 195 구성 15명 held-out 평가 → final_eval*.csv, final_config*.json (약 10분)
+python thumb_model/predict.py obj/20_F_0179G.obj --mode simple     # 최단순 축(P1→P20′ 14.6° 회전, final_config_simple.json)
+python thumb_model/final_pipeline.py --eval --gate-x 1.0           # 225 구성 15명 held-out 평가 → final_eval*.csv, final_config*.json (약 10분)
+python thumb_model/simple_explainer.py            # 최단순 축 그림 세트 → report/simple/
 python thumb_model/contact_patch_views.py         # 엄지 접촉 패치 그림 15장 + P6 후보 수치 (report/contact_patch/)
 python thumb_model/rule_pipeline.py               # 특허 규칙 파이프라인 (rule_eval.csv, rule_landmarks.csv)
 python thumb_model/rule_pipeline.py --frame sw    # 진단: SW의 P28·P3 좌표계로 실행

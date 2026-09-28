@@ -1,0 +1,21 @@
+{
+  "p1_source": "rule_band1",
+  "axis": "p20_rotated",
+  "method": "rule",
+  "params": {
+    "phi_deg": 14.625170927599642
+  },
+  "loo_15_hands": {
+    "len_mae": 1.6999999999999995,
+    "len_max": 4.20000000000001,
+    "n05": 3,
+    "n1": 6,
+    "n2": 9,
+    "p15_sd": 1.9754560990423595,
+    "p15_bias": -0.363728208817902,
+    "p1_mae": 1.4091039894871016,
+    "ang_mean": 1.4281987967496723,
+    "ang_sd": 1.2061653512620016
+  },
+  "note": "no learning, simplest axis: P1 (band rule) -> P20' line rotated by phi_deg towards the thumb's outer side; phi_deg = mean SW angle(P1->P15 vs P1->P20) over the 15 hands (14.6 +/- 1.1 deg; the held-out numbers used the leave-one-out mean per fold)"
+}

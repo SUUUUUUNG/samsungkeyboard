@@ -47,9 +47,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("obj")
     ap.add_argument("--model", default=MODEL_PATH)
-    ap.add_argument("--mode", choices=("learned", "combined", "rule"), default="learned",
+    ap.add_argument("--mode", choices=("learned", "combined", "rule", "simple"), default="learned",
                     help="learned: apex/atlas model only; combined: learned + geometric rule (final_pipeline.py, final_config.json); "
-                         "rule: geometric rule only, no model (final_config_rule.json)")
+                         "rule: geometric rule only, no model (final_config_rule.json); "
+                         "simple: rule only with the simplest axis, P1 -> P20' rotated by the SW's constant angle (final_config_simple.json)")
     ap.add_argument("--p1", default=None, help="combined/rule mode: P1 source (rule_midpoint | rule_band1 | learned_apex); default from the config")
     ap.add_argument("--axis", default=None, help="combined/rule mode: thumb axis definition; default from the config")
     ap.add_argument("--method", default=None, help="combined/rule mode: P15 combination (learned | rule | average | gate | stack); default from the config")
@@ -70,9 +71,11 @@ def main():
     else:
         from final_pipeline import needs_learning, predict_hand
         from align_landmarks import read_obj
-        cfg_path = os.path.join(HERE, "final_config.json" if args.mode == "combined" else "final_config_rule.json")
+        cfg_name = {"combined": "final_config.json", "rule": "final_config_rule.json", "simple": "final_config_simple.json"}[args.mode]
+        cfg_path = os.path.join(HERE, cfg_name)
         cfg = json.load(open(cfg_path, encoding="utf-8")) if os.path.exists(cfg_path) else {}
-        defaults = {"combined": ("rule_midpoint", "learned", "rule"), "rule": ("rule_band1", "p1_to_B", "rule")}[args.mode]
+        defaults = {"combined": ("rule_midpoint", "learned", "rule"), "rule": ("rule_band1", "p1_to_B", "rule"),
+                    "simple": ("rule_band1", "p20_rotated", "rule")}[args.mode]
         args.p1 = args.p1 or cfg.get("p1_source", defaults[0])
         args.axis = args.axis or cfg.get("axis", defaults[1])
         args.method = args.method or cfg.get("method", defaults[2])
@@ -80,6 +83,8 @@ def main():
         cfg_params = cfg.get("params", {}) if same else {}
         if args.axis == "midline_station" and "t_station" not in cfg_params:
             sys.exit("axis midline_station needs params.t_station from the config (run final_pipeline.py --eval)")
+        if args.axis == "p20_rotated" and "phi_deg" not in cfg_params:
+            sys.exit("axis p20_rotated needs params.phi_deg from the config (run final_pipeline.py --eval)")
         bundle = None
         if needs_learning(args.p1, args.axis, args.method):
             with open(args.model, "rb") as fh:
@@ -89,7 +94,8 @@ def main():
         p1, p15, parts = res["P1"], res["P15"], res["parts"]
         print(f"P1  (thumb tip):  {p1[0]:.3f} {p1[1]:.3f} {p1[2]:.3f}   [{args.p1}]")
         print(f"P15 (thumb base): {p15[0]:.3f} {p15[1]:.3f} {p15[2]:.3f}   [axis={args.axis}"
-              + (f" t_station={parts['t_station']:.0f}" if parts.get("t_station") is not None else "") + f", method={args.method}]")
+              + (f" t_station={parts['t_station']:.0f}" if parts.get("t_station") is not None else "")
+              + (f" phi={parts['phi_deg']:.1f}deg" if parts.get("phi_deg") is not None else "") + f", method={args.method}]")
         print(f"thumb length (xy): {res['length_mm']:.2f} mm")
         line = f"  rule P15 along-axis t={parts['t_rule']:.1f} (P20 foot t={parts['t_foot']:.1f})"
         if parts["t_learned"] is not None:

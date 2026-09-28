@@ -41,12 +41,13 @@ TIP_RADIUS = 25.0            # thumb-tip region used for the apex / max-y search
 BAND_Y = 1.0                 # P1 band rule: points within this y distance (hand frame) of the max-y point
 STATIONS = (15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 55.0)   # midline station candidates (mm proximal of P1's projection)
 STATION_AXES = tuple(f"midline_t{int(t)}" for t in STATIONS)
-BASE_AXES = ("learned", "midline_parallel", "midline_foot", "midline", "p1_to_B")
+BASE_AXES = ("learned", "midline_parallel", "midline_foot", "midline", "p1_to_B", "p20_rotated")
 AXES = BASE_AXES + ("midline_station",)   # midline_station: station chosen by nested LOO (eval) / params["t_station"] (predict)
 P1_SOURCES = ("rule_midpoint", "rule_band1", "learned_apex")
 COMBOS = ("learned", "rule", "average", "gate", "stack")
 COMBINED_FAMILY = dict(p1=("rule_midpoint", "learned_apex"), axes=BASE_AXES[:4], methods=COMBOS)   # what final_config.json is chosen from (unchanged)
 RULE_ONLY_FAMILY = dict(p1=("rule_midpoint", "rule_band1"), axes=("p1_to_B", "midline_parallel", "midline_foot", "midline", "midline_station"), methods=("rule",))
+SIMPLE_FAMILY = dict(p1=("rule_band1",), axes=("p20_rotated",), methods=("rule",))   # simplest axis: P1 -> P20' rotated by the SW's constant angle -> final_config_simple.json
 
 
 def unit(v):
@@ -104,10 +105,22 @@ def p1_from_source(parts, learned, p1_source):
     raise ValueError(p1_source)
 
 
-def axis_direction(parts, axis, p1, p15_learned=None, t_station=None):
+def sw_axis_angle(A):
+    """Signed angle (deg, xy) from the P1->P15 axis to the P1->P20 line in a set of SW landmarks
+    (28 x 3 array). In the SW's own output this is 14.6 +/- 1.1 deg over the 15 hands."""
+    a = unit(A[14][:2] - A[0][:2])
+    b = unit(A[19][:2] - A[0][:2])
+    return float(np.degrees(np.arctan2(a[0] * b[1] - a[1] * b[0], a @ b)))
+
+
+def axis_direction(parts, axis, p1, p15_learned=None, t_station=None, phi_deg=None):
     """Unit direction from P1 towards the base for the chosen axis definition."""
     if axis == "learned":
         return unit(p15_learned[:2] - p1[:2])
+    if axis == "p20_rotated":                                 # P1 -> P20' line rotated back by the SW's constant angle (simplest axis)
+        v = unit(parts["P20"][:2] - p1[:2])
+        a = np.radians(-float(phi_deg))
+        return np.array([np.cos(a) * v[0] - np.sin(a) * v[1], np.sin(a) * v[0] + np.cos(a) * v[1]])
     if axis in ("midline_parallel", "midline"):              # parallel to the midline / the midline itself (through the apex)
         return -parts["d_mid"]
     if axis == "midline_foot":                                # P1 -> foot of P20 on the midline axis
@@ -223,7 +236,7 @@ def predict_hand(V, F, bundle=None, p1_source="rule_midpoint", axis="midline_foo
             raise ValueError(f"configuration ({p1_source}, {axis}, {method}) needs the learned model; pass bundle")
         learned, _ = learned_parts_from_model(V, F, bundle)
     p1 = p1_from_source(parts, learned, p1_source)
-    u = axis_direction(parts, axis, p1, learned["P15"], params.get("t_station"))
+    u = axis_direction(parts, axis, p1, learned["P15"], params.get("t_station"), params.get("phi_deg"))
     p15_rule, t_rule, t_foot, w20, _ = rule_p15(parts, p1, u)
     t_learned = float((learned["P15"][:2] - p1[:2]) @ u) if learned["P15"] is not None else None
     t = combine(t_learned, t_rule, t_foot, w20, method, params)
@@ -231,7 +244,7 @@ def predict_hand(V, F, bundle=None, p1_source="rule_midpoint", axis="midline_foo
     return {"P1": p1, "P15": p15, "length_mm": xy_length(p1, p15),
             "parts": {"P20": parts["P20"], "P15_rule": p15_rule, "P15_learned": learned["P15"], "P1_learned": learned["P1"],
                       "t_learned": t_learned, "t_rule": t_rule, "t_foot": t_foot, "axis": axis, "method": method,
-                      "t_station": params.get("t_station")}}
+                      "t_station": params.get("t_station"), "phi_deg": params.get("phi_deg"), "u": u}}
 
 
 # ------------------------------------------------------------- evaluation
@@ -252,17 +265,19 @@ def evaluate():
 
     names = [h[0] for h in hands]
     ref = {n: REFERENCE_THUMB_MM[n[:-1]] for n in names}
+    phis = {n: sw_axis_angle(A) for n, A, *_ in hands}       # SW's P1->P15 vs P1->P20 angle per hand (aligned lnd = rigid copy of lnd)
     concrete_axes = BASE_AXES + STATION_AXES
     # per hand, per P1 source, per concrete axis: the rule / learned along-axis quantities
     table = {}
     for name, A, parts, learned in hands:
         g1, g15 = A[0], A[14]
         u_true = unit(g1[:2] - g15[:2])
+        phi_loo = float(np.mean([phis[m] for m in names if m != name]))   # nested: the held-out hand's own angle is not used
         for p1s in P1_SOURCES:
             p1 = p1_from_source(parts, learned, p1s)
             for ax in concrete_axes:
                 p1_ax = parts["apex"] if ax == "midline" else p1
-                u = axis_direction(parts, ax, p1_ax, learned["P15"])
+                u = axis_direction(parts, ax, p1_ax, learned["P15"], phi_deg=phi_loo)
                 p15_rule, t_rule, t_foot, w20, _ = rule_p15(parts, p1_ax, u)
                 t_learned = float((learned["P15"][:2] - p1_ax[:2]) @ u)
                 t_true = float((g15[:2] - p1_ax[:2]) @ u)
@@ -270,7 +285,7 @@ def evaluate():
                 table[(name, p1s, ax)] = dict(p1=p1_ax, u=u, t_learned=t_learned, t_rule=t_rule, t_foot=t_foot, w20=w20, t_true=t_true,
                                               angle=angle, p1_err=float(np.linalg.norm(p1_ax[:2] - g1[:2])),
                                               p15_rule_err=float(np.linalg.norm(p15_rule[:2] - g15[:2])),
-                                              z_rule=p15_rule[2], g15=g15)
+                                              z_rule=p15_rule[2], g15=g15, phi_deg=phi_loo if ax == "p20_rotated" else None)
         print(f"[{name}] table ready", flush=True)
 
     def train_rows(p1s, ax, train_names):
@@ -303,6 +318,8 @@ def evaluate():
                         use_ax, params = best[1], {**best[2], "t_station": float(best[1][9:])}
                     else:
                         use_ax, params = ax, fit_params(method, train_rows(p1s, ax, train_names))
+                        if ax == "p20_rotated":
+                            params = {**params, "phi_deg": table[(name, p1s, ax)]["phi_deg"]}
                     e = table[(name, p1s, use_ax)]
                     length, err, t, p15 = entry_result(e, method, params, ref[name])
                     rows.append({"name": name, "p1_source": p1s, "axis": ax, "method": method,
@@ -348,7 +365,7 @@ def evaluate():
 
     print_rows(summ[:20], f"top 20 of {len(summ)} configurations (nested LOO for parameters / station)")
     rule_only = [s for s in summ if not s["uses_learning"]]
-    print_rows(rule_only, "no-learning configurations (P1 rule, mesh axis, rule P15); midline_tNN = fixed station (tuned on all 15), midline_station = nested LOO")
+    print_rows(rule_only, "no-learning configurations (P1 rule, mesh axis, rule P15); midline_tNN = fixed station (tuned on all 15), midline_station = nested LOO, p20_rotated = SW angle by nested LOO")
 
     def per_hand(best):
         print(f"\nper-hand length error for {best['p1_source']} / {best['axis']} / {best['method']}:")
@@ -368,6 +385,8 @@ def evaluate():
             params = {**params, "t_station": float(sax[9:])}
         else:
             params = fit_params(best["method"], train_rows(best["p1_source"], ax, names))
+            if ax == "p20_rotated":
+                params = {**params, "phi_deg": float(np.mean(list(phis.values())))}
         return {k: (v.tolist() if hasattr(v, "tolist") else v) for k, v in params.items()}
 
     def save_config(best, path, note):
@@ -395,6 +414,18 @@ def evaluate():
     elif best_r["axis"] == "p1_to_B":
         note_r += "; axis = band P1 -> B (thumb-width midpoint 2 cm distal of the P20 level: patent finger-axis rule, no fitted constant)"
     save_config(best_r, os.path.join(HERE, "final_config_rule.json"), note_r)
+    # simplest axis (band P1 -> P20' rotated by the SW's constant angle) -> final_config_simple.json
+    best_s = next(s for s in summ if in_family(s, SIMPLE_FAMILY))
+    per_hand(best_s)
+    ph = np.array(list(phis.values()))
+    save_config(best_s, os.path.join(HERE, "final_config_simple.json"),
+                f"no learning, simplest axis: P1 (band rule) -> P20' line rotated by phi_deg towards the thumb's outer side; "
+                f"phi_deg = mean SW angle(P1->P15 vs P1->P20) over the 15 hands ({ph.mean():.1f} +/- {ph.std():.1f} deg; "
+                f"the held-out numbers used the leave-one-out mean per fold)")
+    length_figure(rows, names, [(best_c, f"학습+규칙 채택 ({best_c['method']})", "#0b0b0b"),
+                                (best_r, f"규칙만 채택: P1 {best_r['p1_source'][5:]}, 축 {best_r['axis']}", "#1a9850"),
+                                (best_s, "최단순 축: P1→P20′ 선을 14.6° 회전", "#7a3fbf")],
+                  "최단순 축(P1→P20′ 회전) vs 규칙 전용 vs 결합 (15명 held-out)", "final_length_errors_simple.png")
     ref_r = {"p1_source": "rule_band1", "axis": "midline_station", "method": "rule"}
     length_figure(rows, names, [(dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="learned"), "학습 P15만", "#eb6834"),
                                 (dict(p1_source=best_c["p1_source"], axis=best_c["axis"], method="rule"), "규칙 P15만", "#2a78d6"),

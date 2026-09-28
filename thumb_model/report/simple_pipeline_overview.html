@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>최단순 엄지 길이 파이프라인</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781; --grid:#e1e0d9; --ring:rgba(11,11,11,.10);
+  --band:#f0efec; --accent:#7a3fbf; --accent-soft:#efe7f8; --rule:#2a78d6; --warn:#b45309;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#a374dd; --accent-soft:#2a1d3a; --rule:#3987e5; --warn:#f59e0b;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --ring:rgba(255,255,255,.10);
+  --band:#232322; --accent:#a374dd; --accent-soft:#2a1d3a; --rule:#3987e5; --warn:#f59e0b;
+}
+body{margin:0;background:var(--page);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;font-size:15px;line-height:1.65}
+.wrap{max-width:960px;margin:0 auto;padding-block:32px 56px;padding-inline:20px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+h1{font-size:28px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:19px;font-weight:600;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--grid)}
+h3{font-size:15.5px;font-weight:600;margin:20px 0 6px}
+p{max-width:70ch;margin:8px 0;color:var(--ink-2)}
+p.lead{color:var(--ink);font-size:16.5px}
+strong{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,"Malgun Gothic",monospace;font-size:13px;background:var(--band);padding:1px 5px;border-radius:4px}
+.callout{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:4px 0;color:var(--ink)}
+.flow{display:flex;flex-direction:column;gap:0;margin:18px 0;max-width:760px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:14px 16px;background:var(--surface);border:1px solid var(--ring);border-radius:8px}
+.step + .step{margin-top:10px}
+.step .num{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--page);display:grid;place-items:center;font-weight:600;font-size:14px}
+.step h3{margin:2px 0 4px}
+.step p{margin:2px 0}
+.tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px;color:#fff;background:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;margin:10px 0}
+th{font-weight:500;color:var(--ink-2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--muted)}
+td{padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.hl td{background:var(--accent-soft)}
+.tbl{overflow-x:auto}
+figure{margin:14px 0;background:var(--surface);border:1px solid var(--ring);border-radius:8px;padding:10px}
+figure img{max-width:100%;display:block;border-radius:4px}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ul{max-width:72ch;color:var(--ink-2);padding-left:22px}
+li{margin:4px 0}
+dl{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;max-width:76ch}
+dt{font-weight:600}dd{margin:0;color:var(--ink-2)}
+.note{font-size:13px;color:var(--muted)}
+@media (max-width:640px){h1{font-size:23px}.wrap{padding-inline:16px}dl{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">samsungkeyboard · 브랜치 hy1 · 2026-09-28 · 학습 없음 · 최단순 축</div>
+  <h1>최단순 엄지 길이 파이프라인 소개</h1>
+  <p class="lead">규칙 전용 파이프라인에서 <strong>엄지 축</strong>만 바꾼 판입니다. 폭 측정·내측 축·B 같은 중간 구성 없이, <strong>P1과 P20′ 두 점</strong>과 <strong>각도 상수 하나</strong>로 축을 긋습니다. P1(띠 규칙)과 P15(85~95° 창 안 컨투어 최고점)를 찾는 방법은 그대로입니다. 실행: <code>python thumb_model/predict.py hand.obj --mode simple</code></p>
+
+  <div class="callout">
+    <p><strong>결과 (15명, 각자 처음 보는 손으로 평가).</strong> 엄지 길이 평균 오차 <strong>1.70mm</strong>(최대 4.2), 0.5mm 이내 3명, 1mm 이내 6명, 2mm 이내 9명. 규칙 전용(1.71)·결합 파이프라인(1.68)과 같은 정확도이고, 축 방향은 SW 축과 <strong>1.4 ± 1.2°</strong>로 세 방식 중 흔들림이 가장 작습니다. 목표 0.5mm에는 미달합니다.</p>
+  </div>
+
+  <h2>1. 축을 이렇게 단순화할 수 있는 근거</h2>
+  <p>SW의 정답 점들에서 P1→P20 선과 P1→P15 축 사이 각도를 재면 15명 모두 <strong>14.6 ± 1.1°</strong>(범위 12.4~16.3)입니다. 손 크기·성별과 무관하게 거의 일정합니다. 그러니 메쉬에서 P1과 P20′만 찾으면, 그 선을 엄지 바깥쪽으로 14.6° 돌린 직선이 곧 SW 축의 근사입니다. 메쉬에서 실제로 그렇게 만든 축은 SW 축과 1.4 ± 1.2° 차이로, 5단계 구성(P1→B)의 2.0 ± 2.3°보다 오히려 안정적입니다.</p>
+  <figure><img src="simple/sw_angle_consistency.png" alt="15명 각각의 SW 각도(P1-P20 선 대 P1-P15 축)와 메쉬 축의 각도 오차"><figcaption>왼쪽: SW 정답 점에서 잰 각도. 회색 띠가 ±1 표준편차. 오른쪽: 메쉬에서 띠 P1→P20′ 선을 14.6° 돌려 만든 축과 SW 축의 각도 차. 회색 띠가 ±1°.</figcaption></figure>
+  <p>이 상수는 우리가 길이에 맞춰 조정한 값이 아니라 SW 출력에서 직접 잰 각도입니다. 다만 데이터에서 온 값이므로 4절의 성적은 매번 그 사람을 빼고 14명으로 각도를 다시 재서(14.5~14.8°) 평가했습니다.</p>
+
+  <h2>2. 파이프라인 단계</h2>
+  <div class="flow">
+    <div class="step"><div class="num">1</div><div><h3>메쉬 읽기와 표면 점 만들기</h3><p>obj의 정점에 표면 샘플을 더해 촘촘한 점구름을 만들고, 손목 중심과 가운뎃손가락 끝으로 손 좌표계(+y = 손가락 방향, +x = 엄지 쪽)를 잡습니다.</p></div></div>
+    <div class="step"><div class="num">2</div><div><h3>외곽선에서 P20′ 찾기</h3><p>손목 중심에서 방사형으로 훑은 실루엣의 들어간 곳 중 엄지–검지 사이가 <strong>P20′</strong>입니다(xy 오차 약 1.5mm).</p></div></div>
+    <div class="step"><div class="num">3</div><div><h3>P1 = 띠 규칙</h3><p>엄지 끝 근처 점들 중 손 좌표계에서 y가 가장 큰 점부터 1mm 아래까지를 후보로 잡고, 그중 엄지 바깥쪽 끝점을 P1로 둡니다(xy 오차 1.41mm).</p></div></div>
+    <div class="step"><div class="num">4</div><div><h3>엄지 축 = P1→P20′ 선을 14.6° 회전 <span class="tag">simple</span></h3><p>P1에서 P20′으로 가는 방향을 엄지 바깥쪽으로 14.6° 돌린 직선입니다. 재료는 P1, P20′, 상수 하나뿐입니다.</p></div></div>
+    <div class="step"><div class="num">5</div><div><h3>밑면 컨투어와 P15</h3><p>축을 따라 1mm마다 축 주변 ±12mm 안 점들 중 가장 낮은 z를 이어 밑면 컨투어를 만들고, P20′을 축에 수직으로 내린 자리 ±1.1mm(85~95°) 안에서 가장 높은 점을 <strong>P15</strong>로 둡니다.</p></div></div>
+    <div class="step"><div class="num">6</div><div><h3>엄지 길이 출력</h3><p>길이 = P1과 P15의 xy 거리. 좌표, 길이, 확인용 PLY를 냅니다.</p></div></div>
+  </div>
+  <figure><img src="simple/axis_explainer.png" alt="한 손에서 본 최단순 축: P1과 P20′을 잇는 선, 14.6도 회전한 축, SW 축, 창과 규칙 P15"><figcaption>축 만들기(손 0004). 회색 파선이 P1→P20′ 선, 보라색이 그 선을 14.6° 돌린 축, 검정이 SW 축(이 손은 3.0° 차이). 하늘색 점선이 P20′의 수직 발, 분홍 구간이 85~95° 창, 초록 별이 창 안 컨투어 최고점 = 규칙 P15, 검정 ×가 SW 정답.</figcaption></figure>
+  <figure><img src="simple/pipeline_explainer.png" alt="최단순 파이프라인 세 단계: P1 띠 규칙, 회전 축, 컨투어 창 안 최고점"><figcaption>3·4·5단계를 한 손(0004)에서 나란히. ① 파란 점이 1mm 띠 후보, 빨간 별이 P1. ② 보라 선이 회전 축. ③ 파란 곡선이 밑면 컨투어, 분홍 구간이 창, 초록 별이 P15, 검정 선이 SW 정답의 축 위 위치.</figcaption></figure>
+
+  <h2>3. 왜 축을 더 정교하게 만들어도 길이는 안 좋아지나</h2>
+  <p>축이 길이에 주는 영향의 상한을 직접 쟀습니다. P1 띠 규칙과 P15 창 규칙은 고정하고, 축만 <strong>SW의 정답 축 방향</strong>으로 바꿔 넣으면 길이 평균 오차는 1.83mm입니다. 지금 축(1.70)보다 좋아지지 않습니다. 축을 완벽하게 알아도 P15가 축 위 어디에 놓이는지(축 방향 위치 t)의 편차가 약 2mm로 그대로이기 때문입니다. 축 방향이 δ° 틀리면 P15는 주로 옆으로 밀리는데, 옆 방향 오차는 길이에 2차항(2mm면 0.04mm)으로만 들어갑니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>축 정의 (P1·P15 규칙 동일)</th><th class="n">SW 축과 각도</th><th class="n">길이 평균 오차</th><th class="n">P15 축 방향 편차(sd)</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><strong>P1→P20′ 선을 14.6° 회전 (이 문서)</strong></td><td class="n">+1.4 ± 1.2°</td><td class="n"><strong>1.70mm</strong></td><td class="n">1.98mm</td></tr>
+      <tr><td>P1→B (규칙 전용 채택, 5단계 구성)</td><td class="n">+2.0 ± 2.3°</td><td class="n">1.71mm</td><td class="n">2.06mm</td></tr>
+      <tr><td>SW의 정답 축 방향을 그대로 사용 (상한)</td><td class="n">0</td><td class="n">1.83mm</td><td class="n">2.18mm</td></tr>
+      <tr><td>P1–P20′ 선에 수직인 판 하나로 폭 중앙점</td><td class="n">+4.3 ± 2.0°</td><td class="n">1.82mm</td><td class="n">2.04mm</td></tr>
+      <tr><td>엄지 점들의 PCA 주축</td><td class="n">+5.6 ± 1.6°</td><td class="n">2.23mm</td><td class="n">2.47mm</td></tr>
+    </tbody>
+  </table></div>
+  <p>결론: 축은 이미 병목이 아닙니다. 남은 오차를 줄이려면 <strong>P15의 축 방향 위치 t를 정하는 규칙</strong>이 바뀌어야 합니다. 지금은 "P20′의 수직 발 ±1.1mm 안에서 컨투어가 가장 높은 점"인데, 정답 축과 정답 P20을 넣어도 이 규칙은 +0.3 ± 2.1mm입니다. 즉 약 2mm의 사람별 편차가 이 규칙의 바닥이고, 지금까지 시험한 다른 단서(들림 봉우리, 접촉 최저점, P6, 접촉 패치, 곡률)는 모두 이보다 나빴습니다.</p>
+
+  <h2>4. 검증 결과</h2>
+  <p>15명 각각을 빼고 나머지 14명으로 각도 상수를 재서(14.5~14.8°) 뺀 사람을 예측했습니다. 그 외에 데이터로 정한 값은 없습니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>구성 (15명 held-out)</th><th class="n">길이 평균 오차</th><th class="n">최대</th><th class="n">0.5 / 1 / 2mm 이내</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><strong>최단순 축 (이 문서)</strong>: P1 띠 + P1→P20′ 14.6° 회전 + 창 규칙</td><td class="n"><strong>1.70mm</strong></td><td class="n">4.2</td><td class="n">3 / 6 / 9</td></tr>
+      <tr><td>규칙 전용 채택: P1 띠 + 축 P1→B + 창 규칙</td><td class="n">1.71mm</td><td class="n">4.1</td><td class="n">4 / 7 / 10</td></tr>
+      <tr><td>결합 파이프라인 채택 (학습 + 규칙, gate 1.0mm)</td><td class="n">1.68mm</td><td class="n">4.6</td><td class="n">3 / 4 / 11</td></tr>
+      <tr><td>학습 모델만</td><td class="n">1.95mm</td><td class="n">4.3</td><td class="n">2 / 6 / 9</td></tr>
+    </tbody>
+  </table></div>
+  <figure><img src="final_length_errors_simple.png" alt="15명 사람별 엄지 길이 오차: 결합 채택, 규칙 전용 채택, 최단순 축"><figcaption>사람별 엄지 길이 오차(예측 − 기준값). 보라 = 최단순 축, 초록 = 규칙 전용(P1→B), 검정 = 결합. 회색 띠가 목표 ±0.5mm. 세 방식의 오차는 사람별로 같은 방향입니다(상관 0.9).</figcaption></figure>
+  <p>사람별 오차(최단순 축, mm): 0004 +0.9, 0097 +0.2, 0179 +2.4, 2633 −0.7, 2634 +2.8, 2635 +2.4, 2636 −0.4, 2637 +1.0, 1113 −4.2, 1114 −1.5, 1115 −1.4, 1116 −3.1, 1117 −0.4, 1559 +2.3, 1573 +1.8. 사람별 그림 15장은 <code>report/simple/&lt;이름&gt;.png</code>.</p>
+  <div class="grid2">
+    <figure><img src="simple/20_M_1113G.png" alt="1113: 최단순 축과 규칙 P15, SW 정답"><figcaption>1113: 축은 SW와 2.4° 차이뿐인데 P15가 축 위에서 4mm 끝 쪽에 놓여 길이 −4.2mm. 축이 아니라 t의 문제.</figcaption></figure>
+    <figure><img src="simple/20_F_2636G.png" alt="2636: 최단순 축과 규칙 P15, SW 정답"><figcaption>2636: 축 3.0° 차이에도 길이 오차 −0.4mm. 옆 방향 어긋남은 길이에 거의 안 들어감.</figcaption></figure>
+  </div>
+
+  <h2>5. 세 파이프라인 중 무엇을 쓸까</h2>
+  <ul>
+    <li><strong>정확도는 셋 다 같습니다</strong>(1.68 / 1.71 / 1.70, 우연 범위). 1113·1116·1559·1573은 어느 방식이든 2~4mm 틀립니다.</li>
+    <li><strong>설명·구현의 단순함</strong>은 이 문서의 최단순 축이 가장 낫습니다. 재료가 P1, P20′, 각도 하나입니다. 대신 "14.6°는 SW 출력에서 잰 값"이라는 점을 밝혀야 합니다.</li>
+    <li><strong>맞춘 상수가 하나도 없어야 한다면</strong> 규칙 전용(P1→B)이 맞습니다. 2cm는 특허 문구의 값입니다.</li>
+    <li>어느 쪽이든 0.5mm 목표에는 못 미치며, 다음 단계는 P15의 축 방향 위치 t를 정하는 새 단서를 찾거나 공급사에 기저점 정의를 확인하는 것입니다.</li>
+  </ul>
+
+  <h2>6. 용어 풀이</h2>
+  <dl>
+    <dt>P20′</dt><dd>메쉬 실루엣에서 찾은 엄지–검지 오목점. SW의 P20에 해당하며 xy 오차 약 1.5mm.</dd>
+    <dt>띠 규칙</dt><dd>손 좌표계에서 y최대점부터 1mm 아래까지의 점들 중 엄지 바깥쪽 끝점을 P1로 두는 규칙.</dd>
+    <dt>수직 발</dt><dd>P20′에서 축에 수직으로 내렸을 때 만나는 점. 창의 중심.</dd>
+    <dt>띠 컨투어</dt><dd>축 주변 ±12mm 띠 안에서 1mm마다 가장 낮은 z를 이은 곡선. 손바닥 밑면이 유리에서 뜬 정도.</dd>
+    <dt>축 방향 위치 t</dt><dd>P1에서 축을 따라 손목 쪽으로 잰 거리. P15의 t가 곧 엄지 길이입니다.</dd>
+    <dt>held-out</dt><dd>평가 대상 손의 정답을 상수 결정에 쓰지 않은 상태. 여기서는 각도 상수를 매번 나머지 14명으로 재서 평가.</dd>
+  </dl>
+
+  <p class="note">관련 파일: thumb_model/final_pipeline.py(축 이름 <code>p20_rotated</code>, <code>sw_axis_angle</code>), thumb_model/final_config_simple.json(설정, phi_deg), thumb_model/predict.py <code>--mode simple</code>, thumb_model/simple_explainer.py(이 문서의 그림 전부 → report/simple/). 규칙 전용 파이프라인 소개는 rule_only_pipeline_overview.html, 결합 파이프라인 소개는 final_pipeline_overview.html, 상세 수치는 align2_and_modeling_readme.md.</p>
+</div>
+</body>
+</html>
